@@ -488,63 +488,175 @@ export default function RoomDetails() {
             )}
 
             {/* Select date range - Calendar */}
-            <div className="space-y-3">
-              <h2 className="text-xl font-bold text-gray-900">Select date range</h2>
-              <div className="border border-gray-200 rounded-xl p-4">
-                {isMobile !== null && (
-                  <Calendar
-                    mode="range"
-                    selected={{ from: checkIn, to: checkOut }}
-                    onSelect={(range: ReactDayPickerDateRange | undefined) => {
-                      if (range) {
-                        setCheckIn(range.from);
-                        setCheckOut(range.to);
-                      }
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900">📅 Select Your Dates</h2>
+                {(checkIn || checkOut) && (
+                  <button 
+                    onClick={() => {
+                      setCheckIn(undefined);
+                      setCheckOut(undefined);
                     }}
-                    disabled={(date) => {
-                      // Disable past dates
-                      if (isBefore(date, startOfDay(new Date()))) return true;
-                      
-                      // Disable unavailable dates from backend
-                      if (backendRoom.unavailableDates && backendRoom.unavailableDates.length > 0) {
-                        const dateStr = format(date, 'yyyy-MM-dd');
-                        return backendRoom.unavailableDates.includes(dateStr);
-                      }
-                      
-                      return false;
-                    }}
-                    numberOfMonths={isMobile ? 1 : 2}
-                    className="w-full"
-                    modifiers={{
-                      unavailable: (date) => {
+                    className="text-sm font-medium text-brand hover:text-brand/80 underline transition"
+                  >
+                    Clear dates
+                  </button>
+                )}
+              </div>
+
+              {/* Selected Date Display */}
+              {checkIn && checkOut && (
+                <div className="bg-brand/5 border-2 border-brand/20 rounded-xl p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="text-xs font-medium text-gray-600 mb-1">Check-in</div>
+                      <div className="text-lg font-bold text-gray-900">
+                        {format(checkIn, 'MMM dd, yyyy')}
+                      </div>
+                      <div className="text-sm text-gray-600">{format(checkIn, 'EEEE')}</div>
+                    </div>
+                    <div className="flex flex-col items-center justify-center px-4">
+                      <ChevronRight className="h-5 w-5 text-brand" />
+                      <div className="text-xs font-semibold text-brand mt-1">
+                        {calculateNights()} night{calculateNights() > 1 ? 's' : ''}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-xs font-medium text-gray-600 mb-1">Check-out</div>
+                      <div className="text-lg font-bold text-gray-900">
+                        {format(checkOut, 'MMM dd, yyyy')}
+                      </div>
+                      <div className="text-sm text-gray-600">{format(checkOut, 'EEEE')}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Calendar Card */}
+              <div className="border-2 border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                <div className="bg-gradient-to-r from-brand/10 to-pink-50 px-6 py-4 border-b-2 border-gray-100">
+                  <p className="text-sm font-semibold text-gray-700">
+                    {!checkIn && !checkOut && 'Select your check-in and check-out dates'}
+                    {checkIn && !checkOut && 'Now select your check-out date'}
+                    {checkIn && checkOut && 'Perfect! Your dates are selected'}
+                  </p>
+                  {backendRoom.unavailableDates && backendRoom.unavailableDates.length > 0 && (
+                    <p className="text-xs text-gray-600 mt-1">
+                      <span className="inline-block w-3 h-3 bg-red-100 border border-red-400 rounded mr-1"></span>
+                      Crossed out dates are unavailable
+                    </p>
+                  )}
+                </div>
+                
+                <div className="p-6">
+                  {isMobile !== null && (
+                    <Calendar
+                      mode="range"
+                      selected={{ from: checkIn, to: checkOut }}
+                      onSelect={(range: ReactDayPickerDateRange | undefined) => {
+                        if (range) {
+                          setCheckIn(range.from);
+                          setCheckOut(range.to);
+                        } else {
+                          setCheckIn(undefined);
+                          setCheckOut(undefined);
+                        }
+                      }}
+                      disabled={(date) => {
+                        // Disable past dates
+                        if (isBefore(date, startOfDay(new Date()))) return true;
+                        
+                        // Disable unavailable dates from backend
                         if (backendRoom.unavailableDates && backendRoom.unavailableDates.length > 0) {
                           const dateStr = format(date, 'yyyy-MM-dd');
                           return backendRoom.unavailableDates.includes(dateStr);
                         }
+                        
                         return false;
-                      }
-                    }}
-                    modifiersStyles={{
-                      unavailable: {
-                        backgroundColor: '#fee2e2',
-                        color: '#dc2626',
-                        textDecoration: 'line-through',
-                        cursor: 'not-allowed',
-                      }
-                    }}
-                  />
-                )}
-                <button 
+                      }}
+                      numberOfMonths={isMobile ? 1 : 2}
+                      className="w-full"
+                      classNames={{
+                        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                        month: "space-y-4",
+                        caption: "flex justify-center pt-1 relative items-center",
+                        caption_label: "text-base font-bold text-gray-900",
+                        nav: "space-x-1 flex items-center",
+                        nav_button: "h-8 w-8 bg-transparent hover:bg-gray-100 p-0 opacity-50 hover:opacity-100 rounded-md transition-all",
+                        nav_button_previous: "absolute left-1",
+                        nav_button_next: "absolute right-1",
+                        table: "w-full border-collapse space-y-1",
+                        head_row: "flex",
+                        head_cell: "text-gray-600 rounded-md w-9 font-medium text-sm",
+                        row: "flex w-full mt-2",
+                        cell: "h-10 w-10 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-gray-100/50 [&:has([aria-selected])]:bg-brand/10 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                        day: "h-10 w-10 p-0 font-normal rounded-md hover:bg-brand/20 aria-selected:opacity-100 transition-colors",
+                        day_range_start: "day-range-start bg-brand text-white hover:bg-brand hover:text-white focus:bg-brand focus:text-white",
+                        day_range_end: "day-range-end bg-brand text-white hover:bg-brand hover:text-white focus:bg-brand focus:text-white",
+                        day_selected: "bg-brand text-white hover:bg-brand hover:text-white focus:bg-brand focus:text-white",
+                        day_today: "bg-gray-100 text-gray-900 font-bold",
+                        day_outside: "day-outside text-gray-400 opacity-50 aria-selected:bg-gray-100/50 aria-selected:text-gray-500",
+                        day_disabled: "text-gray-300 line-through opacity-50 cursor-not-allowed hover:bg-transparent",
+                        day_range_middle: "aria-selected:bg-brand/20 aria-selected:text-gray-900",
+                        day_hidden: "invisible",
+                      }}
+                      modifiers={{
+                        unavailable: (date) => {
+                          if (backendRoom.unavailableDates && backendRoom.unavailableDates.length > 0) {
+                            const dateStr = format(date, 'yyyy-MM-dd');
+                            return backendRoom.unavailableDates.includes(dateStr);
+                          }
+                          return false;
+                        }
+                      }}
+                      modifiersClassNames={{
+                        unavailable: "bg-red-50 text-red-600 line-through hover:bg-red-50"
+                      }}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Date Selection Shortcuts */}
+              <div className="flex flex-wrap gap-2">
+                <button
                   onClick={() => {
-                    setCheckIn(undefined);
-                    setCheckOut(undefined);
+                    const today = new Date();
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    setCheckIn(today);
+                    setCheckOut(tomorrow);
                   }}
-                  className="text-sm text-gray-500 underline hover:text-gray-700 transition mt-4"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border-2 border-gray-200 rounded-full hover:border-brand hover:text-brand hover:bg-brand/5 transition-all"
                 >
-                  Clear dates
+                  Tonight
                 </button>
+                <button
+                  onClick={() => {
+                    const today = new Date();
+                    const nextWeek = new Date(today);
+                    nextWeek.setDate(nextWeek.getDate() + 7);
+                    setCheckIn(today);
+                    setCheckOut(nextWeek);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border-2 border-gray-200 rounded-full hover:border-brand hover:text-brand hover:bg-brand/5 transition-all"
+                >
+                  1 Week
+                </button>
+                <button
+                  onClick={() => {
+                    const today = new Date();
+                    const nextMonth = new Date(today);
+                    nextMonth.setDate(nextMonth.getDate() + 30);
+                    setCheckIn(today);
+                    setCheckOut(nextMonth);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border-2 border-gray-200 rounded-full hover:border-brand hover:text-brand hover:bg-brand/5 transition-all"
+                >
+                  1 Month
+                </button>
+              </div>
             </div>
-          </div>
 
           {/* Host Info */}
             <div className="border border-gray-200 rounded-xl p-6 space-y-4">
@@ -666,23 +778,50 @@ export default function RoomDetails() {
 
               {/* Date Selection */}
               <div className="space-y-3">
-                <label className="text-sm font-semibold text-gray-900 block">Select date range</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-bold text-gray-900">Select Dates</label>
+                  {(checkIn || checkOut) && (
+                    <button 
+                      onClick={() => {
+                        setCheckIn(undefined);
+                        setCheckOut(undefined);
+                      }}
+                      className="text-xs font-medium text-brand hover:text-brand/80 underline transition"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-left font-normal border-gray-300"
+                      className="w-full justify-start text-left font-normal border-2 border-gray-300 hover:border-brand/50 h-12 transition-all"
                     >
                       {checkIn && checkOut ? (
-                        <span className="text-sm">
-                          {format(checkIn, 'MMM dd')} - {format(checkOut, 'MMM dd, yyyy')}
-                        </span>
+                        <div className="flex flex-col items-start">
+                          <span className="text-xs text-gray-500">Check-in → Check-out</span>
+                          <span className="text-sm font-semibold text-gray-900">
+                            {format(checkIn, 'MMM dd')} - {format(checkOut, 'MMM dd, yyyy')}
+                          </span>
+                        </div>
                       ) : (
-                        <span className="text-gray-500 text-sm">Check In → Select Date</span>
+                        <div className="flex flex-col items-start">
+                          <span className="text-xs text-gray-500">Select dates</span>
+                          <span className="text-sm text-gray-400">Check-in → Check-out</span>
+                        </div>
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0" align="start" side="bottom">
+                    <div className="bg-gradient-to-r from-brand/10 to-pink-50 px-4 py-3 border-b">
+                      <p className="text-xs font-semibold text-gray-700">
+                        {!checkIn && !checkOut && 'Select check-in and check-out'}
+                        {checkIn && !checkOut && 'Now select check-out date'}
+                        {checkIn && checkOut && `${calculateNights()} night${calculateNights() > 1 ? 's' : ''} selected`}
+                      </p>
+                    </div>
                     <Calendar
                       mode="range"
                       selected={{ from: checkIn, to: checkOut }}
@@ -690,16 +829,60 @@ export default function RoomDetails() {
                         if (range) {
                           setCheckIn(range.from);
                           setCheckOut(range.to);
+                        } else {
+                          setCheckIn(undefined);
+                          setCheckOut(undefined);
                         }
                       }}
-                      disabled={(date) => isBefore(date, startOfDay(new Date()))}
+                      disabled={(date) => {
+                        if (isBefore(date, startOfDay(new Date()))) return true;
+                        if (backendRoom.unavailableDates && backendRoom.unavailableDates.length > 0) {
+                          const dateStr = format(date, 'yyyy-MM-dd');
+                          return backendRoom.unavailableDates.includes(dateStr);
+                        }
+                        return false;
+                      }}
                       numberOfMonths={2}
-                      className="rounded-md"
+                      className="rounded-md p-4"
+                      classNames={{
+                        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                        month: "space-y-4",
+                        caption: "flex justify-center pt-1 relative items-center",
+                        caption_label: "text-sm font-bold text-gray-900",
+                        nav: "space-x-1 flex items-center",
+                        nav_button: "h-7 w-7 bg-transparent hover:bg-gray-100 p-0 opacity-50 hover:opacity-100 rounded-md transition-all",
+                        nav_button_previous: "absolute left-1",
+                        nav_button_next: "absolute right-1",
+                        table: "w-full border-collapse space-y-1",
+                        head_row: "flex",
+                        head_cell: "text-gray-600 rounded-md w-9 font-medium text-xs",
+                        row: "flex w-full mt-2",
+                        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-gray-100/50 [&:has([aria-selected])]:bg-brand/10 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                        day: "h-9 w-9 p-0 font-normal text-sm rounded-md hover:bg-brand/20 aria-selected:opacity-100 transition-colors",
+                        day_range_start: "day-range-start bg-brand text-white hover:bg-brand hover:text-white focus:bg-brand focus:text-white",
+                        day_range_end: "day-range-end bg-brand text-white hover:bg-brand hover:text-white focus:bg-brand focus:text-white",
+                        day_selected: "bg-brand text-white hover:bg-brand hover:text-white focus:bg-brand focus:text-white",
+                        day_today: "bg-gray-100 text-gray-900 font-bold",
+                        day_outside: "day-outside text-gray-400 opacity-50 aria-selected:bg-gray-100/50 aria-selected:text-gray-500",
+                        day_disabled: "text-gray-300 line-through opacity-50 cursor-not-allowed hover:bg-transparent",
+                        day_range_middle: "aria-selected:bg-brand/20 aria-selected:text-gray-900",
+                        day_hidden: "invisible",
+                      }}
+                      modifiers={{
+                        unavailable: (date) => {
+                          if (backendRoom.unavailableDates && backendRoom.unavailableDates.length > 0) {
+                            const dateStr = format(date, 'yyyy-MM-dd');
+                            return backendRoom.unavailableDates.includes(dateStr);
+                          }
+                          return false;
+                        }
+                      }}
+                      modifiersClassNames={{
+                        unavailable: "bg-red-50 text-red-600 line-through hover:bg-red-50"
+                      }}
                     />
                   </PopoverContent>
                 </Popover>
-
-                <button className="text-sm text-gray-500 underline">Clear dates</button>
               </div>
 
               {/* Guests Selection */}

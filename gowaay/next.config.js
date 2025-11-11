@@ -9,7 +9,7 @@ const nextConfig = {
       // Custom domain for R2 (if configured)
       { protocol: 'https', hostname: 'images.gowaay.com', pathname: '/**' },
       // Legacy domain (for old images)
-      { protocol: 'https', hostname: 'images.gowaay.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'images.thakajabe.com', pathname: '/**' },
       // Production domains
       { protocol: 'https', hostname: 'gowaay.com', pathname: '/**' },
       { protocol: 'https', hostname: 'www.gowaay.com', pathname: '/**' },

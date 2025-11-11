@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Facebook, Instagram, Linkedin, Youtube, Phone, Mail, MessageCircle, MapPin } from 'lucide-react';
+import { Facebook, Instagram, Phone, Mail, MessageCircle, MapPin } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 
 export function Footer() {
@@ -46,7 +46,7 @@ export function Footer() {
             {/* Social Media */}
             <div className="flex items-center gap-3">
               <a 
-                href="https://facebook.com" 
+                href="https://www.facebook.com/gowaay.official" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center hover:bg-brand transition-colors"
@@ -54,28 +54,12 @@ export function Footer() {
                 <Facebook className="w-5 h-5 text-white" />
               </a>
               <a 
-                href="https://instagram.com" 
+                href="https://www.instagram.com/gowaay.official" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center hover:bg-brand transition-colors"
               >
                 <Instagram className="w-5 h-5 text-white" />
-              </a>
-              <a 
-                href="https://linkedin.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center hover:bg-brand transition-colors"
-              >
-                <Linkedin className="w-5 h-5 text-white" />
-              </a>
-              <a 
-                href="https://youtube.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center hover:bg-brand transition-colors"
-              >
-                <Youtube className="w-5 h-5 text-white" />
               </a>
             </div>
           </div>
@@ -107,8 +91,8 @@ export function Footer() {
                 <div>
                   <p className="font-semibold text-gray-900 text-sm mb-1">Address:</p>
                   <p className="text-gray-600 text-sm">
-                    House 37, Road 07, Sector 03,<br />
-                    Uttara, Dhaka-1230, Bangladesh
+                    H-05, R-13, Nikunja-02,<br />
+                    Dhaka, Bangladesh
                   </p>
                 </div>
               </div>

@@ -107,20 +107,59 @@ app.use('/api/blogs', blogRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-// Database connection
+// Database connection with auto-reconnection
 const connectDB = async () => {
   try {
     if (!process.env.MONGODB_URI) {
       throw new Error('MONGODB_URI environment variable is not defined');
     }
     
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      retryWrites: true,
+    });
     console.log('✅ MongoDB connected successfully');
   } catch (error) {
     console.error('❌ MongoDB connection error:', error);
-    process.exit(1);
+    // Retry connection after 5 seconds instead of crashing
+    console.log('⏳ Retrying connection in 5 seconds...');
+    setTimeout(connectDB, 5000);
   }
 };
+
+// Handle MongoDB connection events
+mongoose.connection.on('connected', () => {
+  console.log('✅ MongoDB connected');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('❌ MongoDB error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('⚠️  MongoDB disconnected. Attempting to reconnect...');
+  setTimeout(connectDB, 5000);
+});
+
+// Global error handlers to prevent crashes
+process.on('uncaughtException', (error) => {
+  console.error('💥 UNCAUGHT EXCEPTION! Shutting down...', error);
+  console.error('Error name:', error.name);
+  console.error('Error message:', error.message);
+  console.error('Stack trace:', error.stack);
+  // Log to error tracking service in production
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('💥 UNHANDLED REJECTION! Shutting down...', reason);
+  console.error('Promise:', promise);
+  // Log to error tracking service in production
+  process.exit(1);
+});
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {

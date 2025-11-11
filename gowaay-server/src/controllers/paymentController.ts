@@ -15,9 +15,18 @@ export const createPayment = async (req: AuthenticatedRequest, res: Response, ne
   try {
     const { amount, currency, orderId, products } = req.body;
 
+    // Validate input
+    if (!amount || !currency || !orderId) {
+      return next(new AppError('Missing required payment parameters', 400));
+    }
+
+    if (!req.user || !req.user.id) {
+      return next(new AppError('User authentication required', 401));
+    }
+
     // Create payment record
     const payment = await PaymentTransaction.create({
-      userId: req.user!.id,
+      userId: req.user.id,
       orderId,
       amount,
       currency,
@@ -25,6 +34,10 @@ export const createPayment = async (req: AuthenticatedRequest, res: Response, ne
       products,
       paymentMethod: 'sslcommerz'
     });
+
+    if (!payment) {
+      return next(new AppError('Failed to create payment record', 500));
+    }
 
     // Prepare SSLCommerz data
     const data = {
@@ -39,17 +52,17 @@ export const createPayment = async (req: AuthenticatedRequest, res: Response, ne
       product_name: 'GoWaay Order',
       product_category: 'General',
       product_profile: 'general',
-      cus_name: req.user!.name,
-      cus_email: req.user!.email,
+      cus_name: req.user.name || 'Guest',
+      cus_email: req.user.email,
       cus_add1: 'Dhaka',
       cus_add2: 'Dhaka',
       cus_city: 'Dhaka',
       cus_state: 'Dhaka',
       cus_postcode: '1000',
       cus_country: 'Bangladesh',
-      cus_phone: '01700000000',
+      cus_phone: req.user.phone || '01700000000',
       cus_fax: '01700000000',
-      ship_name: req.user!.name,
+      ship_name: req.user.name || 'Guest',
       ship_add1: 'Dhaka',
       ship_add2: 'Dhaka',
       ship_city: 'Dhaka',
@@ -58,8 +71,28 @@ export const createPayment = async (req: AuthenticatedRequest, res: Response, ne
       ship_country: 'Bangladesh',
     };
 
-    // Create SSLCommerz session
-    const session = await sslcommerz.init(data);
+    // Create SSLCommerz session with timeout
+    let session;
+    try {
+      session = await Promise.race([
+        sslcommerz.init(data),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('SSL Commerce timeout')), 30000)
+        )
+      ]);
+    } catch (sslError) {
+      console.error('SSLCommerz initialization error:', sslError);
+      // Update payment status to failed
+      await PaymentTransaction.findByIdAndUpdate(payment._id, {
+        status: 'failed',
+        paymentDetails: { error: 'SSL Commerce initialization failed' }
+      });
+      return next(new AppError('Payment gateway unavailable. Please try again later.', 503));
+    }
+
+    if (!session || !session.GatewayPageURL) {
+      return next(new AppError('Failed to create payment session', 500));
+    }
 
     res.json({
       success: true,
@@ -71,6 +104,7 @@ export const createPayment = async (req: AuthenticatedRequest, res: Response, ne
       }
     });
   } catch (error) {
+    console.error('Create payment error:', error);
     next(error);
   }
 };
@@ -83,16 +117,39 @@ export const verifyPayment = async (req: Request, res: Response, next: NextFunct
       return next(new AppError('Missing payment verification parameters', 400));
     }
 
-    // Verify payment with SSLCommerz
-    const verification = await sslcommerz.validate({ val_id: val_id as string });
+    // Verify payment with SSLCommerz with timeout
+    let verification;
+    try {
+      verification = await Promise.race([
+        sslcommerz.validate({ val_id: val_id as string }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Verification timeout')), 30000)
+        )
+      ]);
+    } catch (verifyError) {
+      console.error('SSLCommerz verification error:', verifyError);
+      return next(new AppError('Payment verification unavailable. Please try again later.', 503));
+    }
 
-    if (verification.status === 'VALID') {
+    if (!verification) {
+      return next(new AppError('Failed to verify payment', 500));
+    }
+
+    if (verification.status === 'VALID' || verification.status === 'VALIDATED') {
       // Update payment status
-      await PaymentTransaction.findByIdAndUpdate(tran_id, {
-        status: 'completed',
-        transactionId: verification.tran_id,
-        paymentDetails: verification
-      });
+      const updatedPayment = await PaymentTransaction.findByIdAndUpdate(
+        tran_id,
+        {
+          status: 'completed',
+          transactionId: verification.tran_id,
+          paymentDetails: verification
+        },
+        { new: true }
+      );
+
+      if (!updatedPayment) {
+        console.error('Failed to update payment record:', tran_id);
+      }
 
       res.json({
         success: true,
@@ -113,6 +170,7 @@ export const verifyPayment = async (req: Request, res: Response, next: NextFunct
       });
     }
   } catch (error) {
+    console.error('Verify payment error:', error);
     next(error);
   }
 };

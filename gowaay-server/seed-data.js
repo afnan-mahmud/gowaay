@@ -24,7 +24,7 @@ async function seedData() {
     console.log('Cleared existing data');
 
     // 1. Create Admin User
-    const adminPasswordHash = await bcrypt.hash('AdminPassword123!', 12);
+    const adminPasswordHash = await bcrypt.hash('password123', 12);
     const adminUser = new User({
       email: 'admin@gowaay.com',
       passwordHash: adminPasswordHash,
@@ -38,7 +38,7 @@ async function seedData() {
     console.log('✅ Created admin user');
 
     // 2. Create Approved Host User
-    const hostPasswordHash = await bcrypt.hash('HostPassword123!', 12);
+    const hostPasswordHash = await bcrypt.hash('password123', 12);
     const hostUser = new User({
       email: 'host@gowaay.com',
       passwordHash: hostPasswordHash,
@@ -52,7 +52,7 @@ async function seedData() {
     console.log('✅ Created host user');
 
     // 3. Create Pending Host User
-    const pendingHostPasswordHash = await bcrypt.hash('PendingHost123!', 12);
+    const pendingHostPasswordHash = await bcrypt.hash('password123', 12);
     const pendingHostUser = new User({
       email: 'pendinghost@gowaay.com',
       passwordHash: pendingHostPasswordHash,
@@ -66,7 +66,7 @@ async function seedData() {
     console.log('✅ Created pending host user');
 
     // 4. Create Regular Guest User
-    const guestPasswordHash = await bcrypt.hash('GuestPassword123!', 12);
+    const guestPasswordHash = await bcrypt.hash('password123', 12);
     const guestUser = new User({
       email: 'guest@gowaay.com',
       passwordHash: guestPasswordHash,
