@@ -285,7 +285,7 @@ export const api = {
     stats: () => apiClient.get('/admin/stats'),
     hosts: (params?: { page?: number; limit?: number; status?: string }) =>
       apiClient.get('/admin/hosts', { page: params?.page ?? 1, limit: params?.limit ?? 20, status: params?.status }),
-    getHosts: () => apiClient.get('/admin/hosts', { page: 1, limit: 1000 }),
+    getHosts: () => apiClient.get('/admin/hosts', { page: 1, limit: 100 }), // Max 100 per backend validation
     bookings: (params?: { page?: number; limit?: number; status?: string; from?: string; to?: string }) =>
       apiClient.get('/admin/bookings', params),
     rooms: () => apiClient.get('/admin/rooms'),

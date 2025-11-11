@@ -232,11 +232,21 @@ router.post('/rooms', requireAdmin, async (req: AuthenticatedRequest, res) => {
       message: 'Room created successfully',
       data: room
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Create room error:', error);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map((err: any) => err.message);
+      return res.status(400).json({
+        success: false,
+        message: messages.join(', ')
+      });
+    }
+    
     return res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: error.message || 'Internal server error'
     });
   }
 });
@@ -256,8 +266,8 @@ router.patch('/rooms/:id/assign-host', requireAdmin, async (req: AuthenticatedRe
       });
     }
 
-    // Find the room
-    const room = await Room.findById(roomId);
+    // Find the room and populate host info
+    const room = await Room.findById(roomId).populate('hostId', 'displayName isSystemHost');
     if (!room) {
       return res.status(404).json({
         success: false,
@@ -265,8 +275,11 @@ router.patch('/rooms/:id/assign-host', requireAdmin, async (req: AuthenticatedRe
       });
     }
 
-    // Verify the room is admin-created
-    if (!room.isAdminCreated) {
+    // Verify the room is admin-created or assigned to system host
+    const hostData = room.hostId as any;
+    const isSystemHostRoom = room.isAdminCreated || hostData?.isSystemHost || hostData?.displayName === 'GoWaay Admin';
+    
+    if (!isSystemHostRoom) {
       return res.status(403).json({
         success: false,
         message: 'Only admin-created rooms can be reassigned'

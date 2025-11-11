@@ -95,17 +95,23 @@ export default function AdminRooms() {
   const fetchHosts = async () => {
     try {
       const response = await api.admin.getHosts();
+      
       if (response.success && response.data) {
-        const hostsData = (response.data as any).hosts || response.data;
-        const approvedHosts = (Array.isArray(hostsData) ? hostsData : []).filter(
-          (host: any) => host.status === 'approved'
-        );
-        setHosts(approvedHosts.map((host: any) => ({
-          _id: host._id,
-          displayName: host.displayName,
-          phone: host.phone,
-          status: host.status
-        })));
+        // The API returns { hosts: [...], pagination: {...} }
+        const hostsArray = (response.data as any).hosts;
+        
+        if (Array.isArray(hostsArray)) {
+          const approvedHosts = hostsArray.filter(
+            (host: any) => host.status === 'approved'
+          );
+          
+          setHosts(approvedHosts.map((host: any) => ({
+            _id: host._id,
+            displayName: host.displayName,
+            phone: host.phone,
+            status: host.status
+          })));
+        }
       }
     } catch (err) {
       console.error('Failed to fetch hosts:', err);
@@ -349,7 +355,7 @@ export default function AdminRooms() {
                         </div>
                         <div className="flex items-center space-x-2">
                           {getStatusBadge(room.status)}
-                          {room.isAdminCreated && (
+                          {(room.isAdminCreated || room.hostId.displayName === 'GoWaay Admin') && (
                             <Badge variant="secondary" className="bg-purple-100 text-purple-800">
                               Admin Created
                             </Badge>
@@ -384,7 +390,7 @@ export default function AdminRooms() {
                       </div>
                       
                       <div className="flex items-center space-x-2">
-                        {room.isAdminCreated && (
+                        {(room.isAdminCreated || room.hostId.displayName === 'GoWaay Admin') && (
                           <Dialog>
                             <DialogTrigger asChild>
                               <Button variant="default" size="sm" className="bg-purple-600 hover:bg-purple-700">
@@ -416,6 +422,14 @@ export default function AdminRooms() {
                                       </option>
                                     ))}
                                   </select>
+                                  {hosts.length === 0 && (
+                                    <p className="text-sm text-red-600 mt-2">
+                                      ⚠️ No approved hosts found. Please approve at least one host from the Hosts page first.
+                                    </p>
+                                  )}
+                                  <p className="text-xs text-muted-foreground mt-2">
+                                    Found {hosts.length} approved host(s)
+                                  </p>
                                 </div>
                                 <Button 
                                   onClick={() => handleAssignHost(room._id)}
