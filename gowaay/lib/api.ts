@@ -285,9 +285,11 @@ export const api = {
     stats: () => apiClient.get('/admin/stats'),
     hosts: (params?: { page?: number; limit?: number; status?: string }) =>
       apiClient.get('/admin/hosts', { page: params?.page ?? 1, limit: params?.limit ?? 20, status: params?.status }),
+    getHosts: () => apiClient.get('/admin/hosts', { page: 1, limit: 1000 }),
     bookings: (params?: { page?: number; limit?: number; status?: string; from?: string; to?: string }) =>
       apiClient.get('/admin/bookings', params),
     rooms: () => apiClient.get('/admin/rooms'),
+    createRoom: (data: any) => apiClient.post('/admin/rooms', data),
     approveHost: (id: string, data: any) => apiClient.post(`/admin/hosts/${id}/approve`, data),
     rejectHost: (id: string, data: any) => apiClient.post(`/admin/hosts/${id}/reject`, data),
     approveRoom: (id: string, data: any) => apiClient.post(`/admin/rooms/${id}/approve`, data),

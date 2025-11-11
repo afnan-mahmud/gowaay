@@ -139,6 +139,107 @@ router.get('/rooms', requireAdmin, validateQuery(paginationSchema), async (req, 
   }
 });
 
+// @route   POST /api/admin/rooms
+// @desc    Create a new room as admin
+// @access  Private (admin)
+router.post('/rooms', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const {
+      title,
+      description,
+      address,
+      locationName,
+      locationMapUrl,
+      roomType,
+      amenities,
+      basePriceTk,
+      maxGuests,
+      bedrooms,
+      beds,
+      baths,
+      images,
+      instantBooking
+    } = req.body;
+
+    // Validate required fields
+    if (!title || !description || !address || !locationName || !basePriceTk) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
+    }
+
+    // Get or create system host for admin-created rooms
+    let systemHost = await HostProfile.findOne({ 
+      displayName: 'GoWaay Admin',
+      isSystemHost: true 
+    });
+
+    if (!systemHost) {
+      // Create system host profile
+      const adminUser = await User.findOne({ role: 'admin' });
+      if (!adminUser) {
+        return res.status(500).json({
+          success: false,
+          message: 'No admin user found to create system host'
+        });
+      }
+
+      systemHost = await HostProfile.create({
+        userId: adminUser._id,
+        displayName: 'GoWaay Admin',
+        phone: '+8801700000000',
+        whatsapp: '+8801700000000',
+        locationName: 'Dhaka, Bangladesh',
+        locationMapUrl: 'https://maps.google.com',
+        nidFrontUrl: 'https://placeholder.com/system-host',
+        nidBackUrl: 'https://placeholder.com/system-host',
+        status: 'approved',
+        isSystemHost: true
+      });
+    }
+
+    // Calculate commission (10% of base price)
+    const commissionTk = Math.round(basePriceTk * 0.1);
+    const totalPriceTk = basePriceTk + commissionTk;
+
+    // Create the room
+    const room = await Room.create({
+      title,
+      description,
+      address,
+      locationName,
+      locationMapUrl,
+      roomType: roomType || 'single',
+      amenities: amenities || [],
+      basePriceTk,
+      commissionTk,
+      totalPriceTk,
+      maxGuests: maxGuests || undefined,
+      bedrooms: bedrooms || undefined,
+      beds: beds || undefined,
+      baths: baths || undefined,
+      images: images || [],
+      instantBooking: instantBooking || false,
+      unavailableDates: [],
+      hostId: systemHost._id,
+      status: 'approved' // Auto-approve rooms created by admin
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Room created successfully',
+      data: room
+    });
+  } catch (error) {
+    console.error('Create room error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 // @route   GET /api/admin/bookings
 // @desc    Get all bookings for admin review
 // @access  Private (admin)

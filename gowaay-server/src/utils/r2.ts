@@ -5,12 +5,13 @@ let r2Client: S3Client | null = null;
 
 function getR2Client(): S3Client {
   if (!r2Client) {
-    if (!process.env.CF_ACCOUNT_ID || !process.env.CF_R2_ACCESS_KEY_ID || !process.env.CF_R2_SECRET_ACCESS_KEY) {
+    const accountId = process.env.CF_ACCOUNT_ID || process.env.CF_R2_ACCOUNT_ID;
+    if (!accountId || !process.env.CF_R2_ACCESS_KEY_ID || !process.env.CF_R2_SECRET_ACCESS_KEY) {
       throw new Error('Missing required Cloudflare R2 environment variables');
     }
     
     r2Client = new S3Client({
-      endpoint: `https://${process.env.CF_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
       region: process.env.CF_R2_REGION || 'auto',
       credentials: {
         accessKeyId: process.env.CF_R2_ACCESS_KEY_ID,
@@ -50,7 +51,9 @@ export async function uploadToR2(key: string, buffer: Buffer, contentType: strin
     await client.send(command);
 
     // Return the public URL
-    const publicUrl = `${process.env.CF_R2_PUBLIC_BASE_URL || `https://${bucketName}.${process.env.CF_ACCOUNT_ID}.r2.cloudflarestorage.com`}/${key}`;
+    const accountId = process.env.CF_ACCOUNT_ID || process.env.CF_R2_ACCOUNT_ID;
+    const publicBaseUrl = process.env.CF_R2_PUBLIC_URL || process.env.CF_R2_PUBLIC_BASE_URL || `https://${bucketName}.${accountId}.r2.cloudflarestorage.com`;
+    const publicUrl = `${publicBaseUrl}/${key}`;
     return publicUrl;
   } catch (error) {
     console.error('R2 upload error:', error);

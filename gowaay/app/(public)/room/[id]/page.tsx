@@ -66,9 +66,15 @@ interface BackendRoom {
 
 // Helper function to resolve image URLs
 const resolveImageSrc = (image: string) => {
-  if (image.startsWith('http://') || image.startsWith('https://')) return image;
+  console.log('resolveImageSrc input:', image);
+  if (image.startsWith('http://') || image.startsWith('https://')) {
+    console.log('resolveImageSrc output (absolute URL):', image);
+    return image;
+  }
   const normalized = image.startsWith('/') ? image : `/${image}`;
-  return `${env.IMG_BASE_URL}${normalized}`;
+  const resolved = `${env.IMG_BASE_URL}${normalized}`;
+  console.log('resolveImageSrc output (relative URL):', resolved);
+  return resolved;
 };
 
 // Helper function to extract coordinates from Google Maps URL
@@ -168,6 +174,7 @@ export default function RoomDetails() {
       const response = await api.rooms.get<BackendRoom>(roomId);
       if (response.success && response.data) {
         const backendRoom = response.data as BackendRoom;
+        console.log('Backend room images:', backendRoom.images);
         setBackendRoom(backendRoom);
         
         // Map backend data to frontend Room structure
@@ -195,6 +202,7 @@ export default function RoomDetails() {
           updatedAt: backendRoom.updatedAt,
         };
         
+        console.log('Transformed room images:', roomData.images);
         setRoom(roomData);
         trackRoomView(roomData.id, roomData.price);
       } else {

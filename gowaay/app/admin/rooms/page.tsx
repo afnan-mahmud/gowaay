@@ -17,8 +17,10 @@ import {
   MapPin, 
   DollarSign,
   User,
-  Calendar
+  Calendar,
+  Plus
 } from 'lucide-react';
+import Link from 'next/link';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -179,6 +181,12 @@ export default function AdminRooms() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Room Management</h1>
+          <Link href="/admin/rooms/new">
+            <Button className="bg-brand hover:bg-brand/90">
+              <Plus className="h-4 w-4 mr-2" />
+              Create New Room
+            </Button>
+          </Link>
         </div>
         
         <div className="space-y-4">
@@ -206,6 +214,12 @@ export default function AdminRooms() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Room Management</h1>
+          <Link href="/admin/rooms/new">
+            <Button className="bg-brand hover:bg-brand/90">
+              <Plus className="h-4 w-4 mr-2" />
+              Create New Room
+            </Button>
+          </Link>
         </div>
         <div className="text-center py-8">
           <p className="text-red-600 mb-4">Error loading rooms: {error}</p>
@@ -231,6 +245,12 @@ export default function AdminRooms() {
               className="pl-8 w-64"
             />
           </div>
+          <Link href="/admin/rooms/new">
+            <Button className="bg-brand hover:bg-brand/90">
+              <Plus className="h-4 w-4 mr-2" />
+              Create New Room
+            </Button>
+          </Link>
         </div>
       </div>
 

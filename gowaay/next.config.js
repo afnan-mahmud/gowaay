@@ -2,6 +2,9 @@
 const nextConfig = {
   images: {
     remotePatterns: [
+      // Local development
+      { protocol: 'http', hostname: 'localhost', pathname: '/**' },
+      { protocol: 'http', hostname: '127.0.0.1', pathname: '/**' },
       // Cloudflare R2 patterns
       { protocol: 'https', hostname: '*.r2.cloudflarestorage.com', pathname: '/**' },
       { protocol: 'https', hostname: 'thakajabeimageupload.66d3c416fc214c7311529358cd07aece.r2.cloudflarestorage.com', pathname: '/**' },

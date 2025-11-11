@@ -8,6 +8,7 @@ import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import mongoose from 'mongoose';
+import path from 'path';
 import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
 import authRoutes from './routes/auth';
@@ -39,29 +40,42 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate limiting
+// Rate limiting - more lenient in development
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // 1000 for dev, 100 for production
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again later.'
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for localhost in development
+    if (process.env.NODE_ENV !== 'production') {
+      const ip = req.ip || req.socket.remoteAddress;
+      return ip === '::1' || ip === '127.0.0.1' || ip === 'localhost';
+    }
+    return false;
+  }
 });
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // limit auth endpoints to 50 requests per windowMs (increased for testing)
+  max: process.env.NODE_ENV === 'production' ? 50 : 500, // 500 for dev, 50 for production
   message: {
     success: false,
     message: 'Too many authentication attempts, please try again later.'
   },
 });
 
-app.use(limiter);
-// app.use('/api/auth', authLimiter); // Temporarily disabled for testing
+// Apply rate limiter only in production, or with higher limits in dev
+if (process.env.NODE_ENV === 'production') {
+  app.use(limiter);
+  app.use('/api/auth', authLimiter);
+} else {
+  console.log('⚠️  Rate limiting is relaxed for development environment');
+}
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -73,7 +87,8 @@ app.use(compression());
 // Logging middleware
 app.use(morgan('combined'));
 
-// Static file serving removed - all files now served from Cloudflare R2
+// Static file serving - fallback for local uploads when R2 is not configured
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Health check endpoint
 app.get('/health', (req, res) => {

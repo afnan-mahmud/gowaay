@@ -11,6 +11,7 @@ export interface IHostProfile extends Document {
   nidBackUrl: string;
   status: 'pending' | 'approved' | 'rejected';
   propertyCount: number;
+  isSystemHost?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -72,6 +73,10 @@ const hostProfileSchema = new Schema<IHostProfile>({
     type: Number,
     default: 0,
     min: [0, 'Property count cannot be negative']
+  },
+  isSystemHost: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
