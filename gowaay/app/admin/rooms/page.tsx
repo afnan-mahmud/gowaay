@@ -48,6 +48,14 @@ interface Room {
   };
   createdAt: string;
   amenities: string[];
+  isAdminCreated?: boolean;
+}
+
+interface Host {
+  _id: string;
+  displayName: string;
+  phone?: string;
+  status: string;
 }
 
 export default function AdminRooms() {
@@ -60,6 +68,9 @@ export default function AdminRooms() {
   const [activeTab, setActiveTab] = useState('all');
   const [commissionTk, setCommissionTk] = useState(0);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [hosts, setHosts] = useState<Host[]>([]);
+  const [assigningHost, setAssigningHost] = useState<string | null>(null);
+  const [selectedHost, setSelectedHost] = useState<string>('');
 
   const fetchRooms = async () => {
     try {
@@ -81,8 +92,53 @@ export default function AdminRooms() {
     }
   };
 
+  const fetchHosts = async () => {
+    try {
+      const response = await api.admin.getHosts();
+      if (response.success && response.data) {
+        const hostsData = (response.data as any).hosts || response.data;
+        const approvedHosts = (Array.isArray(hostsData) ? hostsData : []).filter(
+          (host: any) => host.status === 'approved'
+        );
+        setHosts(approvedHosts.map((host: any) => ({
+          _id: host._id,
+          displayName: host.displayName,
+          phone: host.phone,
+          status: host.status
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to fetch hosts:', err);
+    }
+  };
+
+  const handleAssignHost = async (roomId: string) => {
+    if (!selectedHost) {
+      alert('Please select a host');
+      return;
+    }
+
+    try {
+      setAssigningHost(roomId);
+      const response = await api.admin.assignHost(roomId, selectedHost);
+      
+      if (response.success) {
+        await fetchRooms(); // Refresh the list
+        setSelectedHost('');
+        alert('Host assigned successfully!');
+      } else {
+        alert(response.message || 'Failed to assign host');
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setAssigningHost(null);
+    }
+  };
+
   useEffect(() => {
     fetchRooms();
+    fetchHosts();
   }, []);
 
   useEffect(() => {
@@ -293,6 +349,11 @@ export default function AdminRooms() {
                         </div>
                         <div className="flex items-center space-x-2">
                           {getStatusBadge(room.status)}
+                          {room.isAdminCreated && (
+                            <Badge variant="secondary" className="bg-purple-100 text-purple-800">
+                              Admin Created
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       
@@ -323,6 +384,50 @@ export default function AdminRooms() {
                       </div>
                       
                       <div className="flex items-center space-x-2">
+                        {room.isAdminCreated && (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="default" size="sm" className="bg-purple-600 hover:bg-purple-700">
+                                <User className="h-4 w-4 mr-1" />
+                                Assign Host
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Assign Host to Room</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label>Room: {room.title}</Label>
+                                  <p className="text-sm text-muted-foreground">Current Host: {room.hostId.displayName}</p>
+                                </div>
+                                <div>
+                                  <Label htmlFor="host-select">Select Host</Label>
+                                  <select
+                                    id="host-select"
+                                    value={selectedHost}
+                                    onChange={(e) => setSelectedHost(e.target.value)}
+                                    className="w-full mt-2 p-2 border rounded-md"
+                                  >
+                                    <option value="">-- Select a Host --</option>
+                                    {hosts.map((host) => (
+                                      <option key={host._id} value={host._id}>
+                                        {host.displayName} {host.phone && `(${host.phone})`}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <Button 
+                                  onClick={() => handleAssignHost(room._id)}
+                                  disabled={assigningHost === room._id}
+                                  className="w-full"
+                                >
+                                  {assigningHost === room._id ? 'Assigning...' : 'Assign Host'}
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        )}
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button variant="outline" size="sm">

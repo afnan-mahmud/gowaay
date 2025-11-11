@@ -26,6 +26,7 @@ export interface IRoom extends Document {
   unavailableDates: string[];
   averageRating: number;
   totalReviews: number;
+  isAdminCreated?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -144,6 +145,10 @@ const roomSchema = new Schema<IRoom>({
     type: Number,
     default: 0,
     min: [0, 'Total reviews cannot be negative']
+  },
+  isAdminCreated: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

@@ -223,7 +223,8 @@ router.post('/rooms', requireAdmin, async (req: AuthenticatedRequest, res) => {
       instantBooking: instantBooking || false,
       unavailableDates: [],
       hostId: systemHost._id,
-      status: 'approved' // Auto-approve rooms created by admin
+      status: 'approved', // Auto-approve rooms created by admin
+      isAdminCreated: true // Mark as admin-created for later host assignment
     });
 
     return res.status(201).json({
@@ -233,6 +234,72 @@ router.post('/rooms', requireAdmin, async (req: AuthenticatedRequest, res) => {
     });
   } catch (error) {
     console.error('Create room error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// @route   PATCH /api/admin/rooms/:id/assign-host
+// @desc    Assign a host to an admin-created room
+// @access  Private (admin)
+router.patch('/rooms/:id/assign-host', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { hostId } = req.body;
+    const roomId = req.params.id;
+
+    if (!hostId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Host ID is required'
+      });
+    }
+
+    // Find the room
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({
+        success: false,
+        message: 'Room not found'
+      });
+    }
+
+    // Verify the room is admin-created
+    if (!room.isAdminCreated) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only admin-created rooms can be reassigned'
+      });
+    }
+
+    // Verify the host exists and is approved
+    const host = await HostProfile.findById(hostId);
+    if (!host) {
+      return res.status(404).json({
+        success: false,
+        message: 'Host not found'
+      });
+    }
+
+    if (host.status !== 'approved') {
+      return res.status(400).json({
+        success: false,
+        message: 'Host must be approved before assignment'
+      });
+    }
+
+    // Update the room's host
+    room.hostId = hostId as any;
+    await room.save();
+
+    return res.json({
+      success: true,
+      message: 'Host assigned successfully',
+      data: room
+    });
+  } catch (error) {
+    console.error('Assign host error:', error);
     return res.status(500).json({
       success: false,
       message: 'Internal server error'
