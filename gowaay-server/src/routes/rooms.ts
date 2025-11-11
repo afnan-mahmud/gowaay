@@ -5,6 +5,7 @@ import { roomCreateSchema, roomUpdateSchema, roomApprovalSchema, roomSearchSchem
 import { validateBody, validateQuery } from '../middleware/validateRequest';
 import { checkBookingOverlap } from '../utils/bookingUtils';
 import { deleteRoomImages } from '../middleware/upload';
+import { calculateCommission } from '../utils/commissionCalculator';
 
 // Extend Express Request interface to include user
 interface AuthenticatedRequest extends Request {
@@ -38,8 +39,9 @@ router.post('/', requireHost, validateBody(roomCreateSchema), async (req: Authen
 
     console.log('Host profile found:', hostProfile._id);
 
-    // Calculate commission (10% of base price)
-    const commissionTk = Math.round(req.body.basePriceTk * 0.1);
+    // Calculate commission based on price tier
+    // < 2800 TK: Fixed 490 TK | >= 2800 TK: 18%
+    const commissionTk = calculateCommission(req.body.basePriceTk);
     const totalPriceTk = req.body.basePriceTk + commissionTk;
     console.log('Commission calculated:', commissionTk);
     console.log('Total price calculated:', totalPriceTk);

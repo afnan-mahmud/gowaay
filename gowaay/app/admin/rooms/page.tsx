@@ -18,7 +18,8 @@ import {
   DollarSign,
   User,
   Calendar,
-  Plus
+  Plus,
+  Pencil
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -442,6 +443,12 @@ export default function AdminRooms() {
                             </DialogContent>
                           </Dialog>
                         )}
+                        <Link href={`/admin/rooms/${room._id}/edit`}>
+                          <Button variant="outline" size="sm" className="bg-blue-50 hover:bg-blue-100 border-blue-200">
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                        </Link>
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button variant="outline" size="sm">

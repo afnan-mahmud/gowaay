@@ -16,6 +16,10 @@ export interface IRoom extends Document {
   basePriceTk: number;
   commissionTk: number;
   totalPriceTk: number;
+  maxGuests?: number;
+  bedrooms?: number;
+  beds?: number;
+  baths?: number;
   images: Array<{
     url: string;
     w: number;
@@ -104,6 +108,26 @@ const roomSchema = new Schema<IRoom>({
     type: Number,
     required: [true, 'Total price is required'],
     min: [0, 'Total price cannot be negative']
+  },
+  maxGuests: {
+    type: Number,
+    required: false,
+    min: [0, 'Max guests cannot be negative']
+  },
+  bedrooms: {
+    type: Number,
+    required: false,
+    min: [0, 'Bedrooms cannot be negative']
+  },
+  beds: {
+    type: Number,
+    required: false,
+    min: [0, 'Beds cannot be negative']
+  },
+  baths: {
+    type: Number,
+    required: false,
+    min: [0, 'Baths cannot be negative']
   },
   images: [{
     url: {

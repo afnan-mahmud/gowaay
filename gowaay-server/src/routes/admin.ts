@@ -3,6 +3,7 @@ import { HostProfile, Room, Booking, User, AccountLedger } from '../models';
 import { requireAdmin, AuthenticatedRequest } from '../middleware/auth';
 import { hostApprovalSchema, roomApprovalSchema, paginationSchema } from '../schemas';
 import { validateBody, validateQuery } from '../middleware/validateRequest';
+import { calculateCommission } from '../utils/commissionCalculator';
 
 const router: express.Router = express.Router();
 
@@ -199,8 +200,9 @@ router.post('/rooms', requireAdmin, async (req: AuthenticatedRequest, res) => {
       });
     }
 
-    // Calculate commission (10% of base price)
-    const commissionTk = Math.round(basePriceTk * 0.1);
+    // Calculate commission based on price tier
+    // < 2800 TK: Fixed 490 TK | >= 2800 TK: 18%
+    const commissionTk = calculateCommission(basePriceTk);
     const totalPriceTk = basePriceTk + commissionTk;
 
     // Create the room
@@ -236,6 +238,86 @@ router.post('/rooms', requireAdmin, async (req: AuthenticatedRequest, res) => {
     console.error('Create room error:', error);
     
     // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map((err: any) => err.message);
+      return res.status(400).json({
+        success: false,
+        message: messages.join(', ')
+      });
+    }
+    
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Internal server error'
+    });
+  }
+});
+
+// @route   PUT /api/admin/rooms/:id
+// @desc    Update a room
+// @access  Private (admin)
+router.put('/rooms/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const roomId = req.params.id;
+    const {
+      title,
+      description,
+      address,
+      locationName,
+      locationMapUrl,
+      roomType,
+      amenities,
+      basePriceTk,
+      commissionTk,
+      maxGuests,
+      bedrooms,
+      beds,
+      baths,
+      images,
+      instantBooking,
+      unavailableDates
+    } = req.body;
+
+    // Find the room
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({
+        success: false,
+        message: 'Room not found'
+      });
+    }
+
+    // Update room fields
+    if (title) room.title = title;
+    if (description) room.description = description;
+    if (address) room.address = address;
+    if (locationName) room.locationName = locationName;
+    if (locationMapUrl !== undefined) room.locationMapUrl = locationMapUrl;
+    if (roomType) room.roomType = roomType;
+    if (amenities) room.amenities = amenities;
+    if (basePriceTk !== undefined) room.basePriceTk = basePriceTk;
+    if (commissionTk !== undefined) room.commissionTk = commissionTk;
+    if (maxGuests !== undefined) room.maxGuests = maxGuests;
+    if (bedrooms !== undefined) room.bedrooms = bedrooms;
+    if (beds !== undefined) room.beds = beds;
+    if (baths !== undefined) room.baths = baths;
+    if (images) room.images = images;
+    if (instantBooking !== undefined) room.instantBooking = instantBooking;
+    if (unavailableDates) room.unavailableDates = unavailableDates;
+
+    // Recalculate total price
+    room.totalPriceTk = room.basePriceTk + room.commissionTk;
+
+    await room.save();
+
+    return res.json({
+      success: true,
+      message: 'Room updated successfully',
+      data: room
+    });
+  } catch (error: any) {
+    console.error('Update room error:', error);
+    
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map((err: any) => err.message);
       return res.status(400).json({

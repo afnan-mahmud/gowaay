@@ -290,6 +290,7 @@ export const api = {
       apiClient.get('/admin/bookings', params),
     rooms: () => apiClient.get('/admin/rooms'),
     createRoom: (data: any) => apiClient.post('/admin/rooms', data),
+    updateRoom: (id: string, data: any) => apiClient.put(`/admin/rooms/${id}`, data),
     assignHost: (roomId: string, hostId: string) => apiClient.patch(`/admin/rooms/${roomId}/assign-host`, { hostId }),
     approveHost: (id: string, data: any) => apiClient.post(`/admin/hosts/${id}/approve`, data),
     rejectHost: (id: string, data: any) => apiClient.post(`/admin/hosts/${id}/reject`, data),

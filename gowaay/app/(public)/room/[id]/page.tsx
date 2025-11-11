@@ -77,35 +77,49 @@ const resolveImageSrc = (image: string) => {
   return resolved;
 };
 
-// Helper function to extract coordinates from Google Maps URL
-const extractCoordinates = (mapUrl: string): { lat: number; lng: number } | null => {
+// Helper function to create Google Maps embed URL from any maps URL
+const createMapEmbedUrl = (mapUrl: string): string => {
+  if (!mapUrl) {
+    return `https://www.google.com/maps/embed/v1/view?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&center=23.8103,90.4125&zoom=15`;
+  }
+
+  // Try to extract coordinates from the URL
   try {
-    // Extract coordinates from standard Google Maps URLs
+    // Pattern 1: @lat,lng format
     const coordMatch = mapUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
     if (coordMatch) {
-      return {
-        lat: parseFloat(coordMatch[1]),
-        lng: parseFloat(coordMatch[2])
-      };
+      return `https://www.google.com/maps/embed/v1/view?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&center=${coordMatch[1]},${coordMatch[2]}&zoom=15`;
     }
-    
-    // Handle query parameters format
-    const latMatch = mapUrl.match(/[?&]lat=(-?\d+\.\d+)/);
-    const lngMatch = mapUrl.match(/[?&]lng=(-?\d+\.\d+)/);
-    if (latMatch && lngMatch) {
-      return {
-        lat: parseFloat(latMatch[1]),
-        lng: parseFloat(lngMatch[1])
-      };
+
+    // Pattern 2: /place/ format
+    const placeMatch = mapUrl.match(/\/place\/[^/]+\/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (placeMatch) {
+      return `https://www.google.com/maps/embed/v1/view?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&center=${placeMatch[1]},${placeMatch[2]}&zoom=15`;
     }
-    
-    return null;
+
+    // Pattern 3: Query parameters (?ll=lat,lng)
+    const llMatch = mapUrl.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (llMatch) {
+      return `https://www.google.com/maps/embed/v1/view?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&center=${llMatch[1]},${llMatch[2]}&zoom=15`;
+    }
+
+    // If it's a shortened URL (goo.gl) or we can't extract coordinates,
+    // try using the URL directly as a place search
+    if (mapUrl.includes('goo.gl') || mapUrl.includes('maps.app.goo.gl')) {
+      // For shortened URLs, we need to open them in a new window since embed doesn't support them
+      // As a fallback, use a clickable link approach
+      console.warn('Shortened URL detected, using place mode as fallback:', mapUrl);
+      return `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(mapUrl)}&zoom=15`;
+    }
+
+    // Last resort: try to use it as a place query
+    return `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(mapUrl)}&zoom=15`;
   } catch (error) {
-    console.error('Error extracting coordinates:', error);
-    return null;
+    console.error('Error creating map embed URL:', error);
+    // Default to Dhaka
+    return `https://www.google.com/maps/embed/v1/view?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&center=23.8103,90.4125&zoom=15`;
   }
 };
-
 
 export default function RoomDetails() {
   const params = useParams();
@@ -715,39 +729,36 @@ export default function RoomDetails() {
             <div className="space-y-3">
               <h2 className="text-xl font-bold text-gray-900">Map</h2>
               {(backendRoom?.locationMapUrl || backendRoom?.hostId?.locationMapUrl) ? (
-                <div className="w-full h-96 rounded-xl overflow-hidden border border-gray-200 relative">
-                  <iframe
-                    src={`https://www.google.com/maps/embed/v1/view?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&center=${
-                      (() => {
-                        const mapUrl = backendRoom.locationMapUrl || backendRoom.hostId?.locationMapUrl || '';
-                        const coords = extractCoordinates(mapUrl);
-                        if (coords) {
-                          return `${coords.lat},${coords.lng}`;
-                        }
-                        return '23.8103,90.4125'; // Default to Dhaka
-                      })()
-                    }&zoom=15&maptype=roadmap`}
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    title="Property Location Map"
-                  />
-                  {/* Circle overlay to indicate approximate area */}
-                  <div 
-                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-                    style={{
-                      width: '120px',
-                      height: '120px',
-                      borderRadius: '50%',
-                      backgroundColor: 'rgba(239, 68, 68, 0.25)',
-                      border: '3px solid rgba(239, 68, 68, 0.6)',
-                      boxShadow: '0 0 20px rgba(239, 68, 68, 0.3)'
-                    }}
-                  />
-                </div>
+                (() => {
+                  const mapUrl = backendRoom.locationMapUrl || backendRoom.hostId?.locationMapUrl || '';
+                  
+                  return (
+                    <div className="w-full h-96 rounded-xl overflow-hidden border border-gray-200 relative">
+                      <iframe
+                        src={createMapEmbedUrl(mapUrl)}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        allowFullScreen
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        title="Property Location Map"
+                      />
+                      {/* Circle overlay to indicate approximate area */}
+                      <div 
+                        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                        style={{
+                          width: '120px',
+                          height: '120px',
+                          borderRadius: '50%',
+                          backgroundColor: 'rgba(239, 68, 68, 0.25)',
+                          border: '3px solid rgba(239, 68, 68, 0.6)',
+                          boxShadow: '0 0 20px rgba(239, 68, 68, 0.3)'
+                        }}
+                      />
+                    </div>
+                  );
+                })()
               ) : (
                 <div className="w-full h-64 bg-gray-200 rounded-xl flex items-center justify-center text-gray-500">
                   <div className="text-center">
