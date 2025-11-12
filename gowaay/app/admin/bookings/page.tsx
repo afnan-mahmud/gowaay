@@ -57,7 +57,7 @@ interface Booking {
 }
 
 export default function AdminBookings() {
-  const { bookings, loading, error, refetch } = useAdminBookings();
+  const { bookings, loading, error } = useAdminBookings();
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -135,7 +135,8 @@ export default function AdminBookings() {
 
       if (response.success) {
         toast.success(approved ? 'Payment approved successfully!' : 'Payment rejected');
-        refetch(); // Refresh bookings list
+        // Reload page to fetch latest bookings
+        setTimeout(() => window.location.reload(), 1000);
       } else {
         toast.error(response.message || 'Failed to verify payment');
       }
