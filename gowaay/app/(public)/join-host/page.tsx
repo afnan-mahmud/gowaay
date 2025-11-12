@@ -13,6 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Home, MapPin, Phone, User, FileText, Mail, Lock } from 'lucide-react';
 import { api, ApiResponse } from '@/lib/api';
+import { toast } from 'sonner';
 
 const hostApplicationSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -44,7 +45,7 @@ export default function JoinHostPage() {
 
   const onSubmit = async (data: HostApplicationForm) => {
     if (!nidFront || !nidBack) {
-      alert('Please upload both NID front and back images');
+      toast.error('Please upload both NID front and back images');
       return;
     }
 
@@ -52,14 +53,10 @@ export default function JoinHostPage() {
       setSubmitting(true);
       
       // Step 1: Upload NID images using public route
-      console.log('Uploading NID images...');
       const [nidFrontResponse, nidBackResponse] = await Promise.all([
         api.uploads.image(nidFront, true), // Use public route
         api.uploads.image(nidBack, true), // Use public route
       ]);
-      
-      console.log('NID Front Response:', nidFrontResponse);
-      console.log('NID Back Response:', nidBackResponse);
 
       if (!nidFrontResponse.success) {
         throw new Error(nidFrontResponse.error ?? 'Failed to upload NID front image');
@@ -76,7 +73,6 @@ export default function JoinHostPage() {
       }
 
       // Step 2: Register user and create host profile in one step
-      console.log('Registering user and creating host profile...');
       const registerResponse: ApiResponse = await api.auth.register({
         name: data.name,
         email: data.email,
@@ -93,16 +89,13 @@ export default function JoinHostPage() {
           nidBackUrl: (nidBackResponse.data as any).url,
         }
       });
-      
-      console.log('Registration Response:', registerResponse);
 
       if (!registerResponse.success) {
         if (registerResponse.message?.includes('already exists')) {
           // User already exists, proceed to login
-          console.log('User already exists, proceeding to login');
         } else {
           const errorMessage = registerResponse.error ?? registerResponse.message ?? 'Registration failed';
-          alert(errorMessage);
+          toast.error(errorMessage);
           return;
         }
       }
@@ -115,17 +108,17 @@ export default function JoinHostPage() {
       });
 
       if (signInResult?.error) {
-        alert('Login failed: ' + signInResult.error);
+        toast.error('Login failed: ' + signInResult.error);
         return;
       }
 
       // Success
       setApplicationSubmitted(true);
-      alert('Host application submitted successfully! An admin will review your application and get back to you within 24-48 hours.');
+      toast.success('Host application submitted successfully! An admin will review your application and get back to you within 24-48 hours.');
 
     } catch (error) {
       console.error('Failed to submit application:', error);
-      alert('Failed to submit application: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error('Failed to submit application: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setSubmitting(false);
     }

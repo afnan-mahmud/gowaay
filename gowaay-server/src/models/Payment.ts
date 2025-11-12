@@ -2,7 +2,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IPaymentTransaction extends Document {
   bookingId: mongoose.Types.ObjectId;
-  gateway: 'sslcommerz';
+  gateway: 'sslcommerz' | 'manual';
   sslSessionKey?: string;
   valId?: string;
   amountTk: number;
@@ -20,7 +20,7 @@ const paymentTransactionSchema = new Schema<IPaymentTransaction>({
   },
   gateway: {
     type: String,
-    enum: ['sslcommerz'],
+    enum: ['sslcommerz', 'manual'],
     required: [true, 'Payment gateway is required']
   },
   sslSessionKey: {

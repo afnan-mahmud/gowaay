@@ -117,10 +117,7 @@ router.post('/create', requireUser, validateBody(bookingCreateSchema), async (re
     const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
     const totalAmount = room.totalPriceTk * nights;
 
-    // Generate transaction ID
-    const transactionId = `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    // Create booking
+    // Create booking (transactionId will be set after payment confirmation)
     const booking = new Booking({
       roomId,
       userId: req.user!.id,
@@ -130,7 +127,6 @@ router.post('/create', requireUser, validateBody(bookingCreateSchema), async (re
       guests,
       mode,
       status: mode === 'instant' ? 'pending' : 'pending',
-      transactionId,
       paymentStatus: mode === 'instant' ? 'unpaid' : 'unpaid',
       amountTk: totalAmount
     });

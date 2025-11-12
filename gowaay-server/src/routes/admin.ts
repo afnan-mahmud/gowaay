@@ -1,5 +1,5 @@
 import express from 'express';
-import { HostProfile, Room, Booking, User, AccountLedger } from '../models';
+import { HostProfile, Room, Booking, User, AccountLedger, PaymentTransaction } from '../models';
 import { requireAdmin, AuthenticatedRequest } from '../middleware/auth';
 import { hostApprovalSchema, roomApprovalSchema, paginationSchema } from '../schemas';
 import { validateBody, validateQuery } from '../middleware/validateRequest';
@@ -662,6 +662,132 @@ router.get('/users', requireAdmin, validateQuery(paginationSchema), async (req, 
   } catch (error) {
     console.error('Get users error:', error);
     res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// @route   POST /api/admin/bookings/:id/verify-payment
+// @desc    Verify and confirm manual payment
+// @access  Private (admin)
+router.post('/bookings/:id/verify-payment', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { approved, notes } = req.body; // approved: true/false
+
+    const booking = await Booking.findById(id)
+      .populate('roomId', 'title commissionTk')
+      .populate('userId', 'name email phone')
+      .populate('hostId', 'displayName');
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found'
+      });
+    }
+
+    if (booking.status !== 'pending_verification') {
+      return res.status(400).json({
+        success: false,
+        message: 'Booking is not pending verification'
+      });
+    }
+
+    // Find the payment transaction
+    const paymentTxn = await PaymentTransaction.findOne({
+      bookingId: booking._id,
+      gateway: 'manual',
+      status: 'pending'
+    });
+
+    if (!paymentTxn) {
+      return res.status(404).json({
+        success: false,
+        message: 'Payment transaction not found'
+      });
+    }
+
+    if (approved) {
+      // Check for duplicate TXN ID (in case of race condition)
+      const duplicateTxn = await PaymentTransaction.findOne({
+        valId: paymentTxn.valId,
+        status: 'completed',
+        _id: { $ne: paymentTxn._id }
+      });
+
+      if (duplicateTxn) {
+        return res.status(400).json({
+          success: false,
+          message: 'This transaction ID has already been used for another booking',
+          data: { duplicateBookingId: duplicateTxn.bookingId }
+        });
+      }
+
+      // ✅ APPROVE: Confirm booking and payment
+      booking.status = 'confirmed';
+      booking.paymentStatus = 'paid';
+      await booking.save();
+
+      paymentTxn.status = 'completed';
+      paymentTxn.raw = {
+        ...paymentTxn.raw,
+        verifiedAt: new Date(),
+        verifiedBy: (req as any).user?.id || 'admin',
+        adminNotes: notes
+      };
+      await paymentTxn.save();
+
+      console.log(`[ADMIN_VERIFY] Payment approved - Booking: ${booking._id}`);
+
+      // Create commission entry
+      if (booking.roomId && (booking.roomId as any).commissionTk) {
+        const commissionAmount = (booking.roomId as any).commissionTk;
+        const ledgerEntry = new AccountLedger({
+          type: 'commission',
+          ref: { bookingId: booking._id },
+          amountTk: commissionAmount,
+          note: `Commission from booking ${booking._id} (Manual Payment - Admin Verified)`,
+          at: new Date()
+        });
+        await ledgerEntry.save();
+        console.log(`[ADMIN_VERIFY] Commission ledger entry created: ${commissionAmount} Tk`);
+      }
+
+      return res.json({
+        success: true,
+        message: 'Payment verified and booking confirmed',
+        data: { booking }
+      });
+
+    } else {
+      // ❌ REJECT: Reject booking
+      booking.status = 'rejected';
+      booking.paymentStatus = 'unpaid'; // Payment was never completed
+      await booking.save();
+
+      paymentTxn.status = 'failed';
+      paymentTxn.raw = {
+        ...paymentTxn.raw,
+        rejectedAt: new Date(),
+        rejectedBy: (req as any).user?.id || 'admin',
+        adminNotes: notes || 'Payment rejected by admin'
+      };
+      await paymentTxn.save();
+
+      console.log(`[ADMIN_VERIFY] Payment rejected - Booking: ${booking._id}`);
+
+      return res.json({
+        success: true,
+        message: 'Payment rejected',
+        data: { booking }
+      });
+    }
+
+  } catch (error) {
+    console.error('[ADMIN_VERIFY_PAYMENT] Error:', error);
+    return res.status(500).json({
       success: false,
       message: 'Internal server error'
     });

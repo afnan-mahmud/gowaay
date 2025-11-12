@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import { toast } from 'sonner';
 
 interface RoomImageUploadProps {
   roomId: string;
@@ -33,7 +34,7 @@ export function RoomImageUpload({
     const filesToUpload = fileArray.slice(0, remainingSlots);
 
     if (filesToUpload.length === 0) {
-      alert(`Maximum ${maxImages} images allowed`);
+      toast.error(`Maximum ${maxImages} images allowed`);
       return;
     }
 
@@ -45,12 +46,13 @@ export function RoomImageUpload({
         const newImages = [...images, ...response.data.images];
         setImages(newImages);
         onImagesChange?.(newImages);
+        toast.success('Images uploaded successfully');
       } else {
-        alert('Failed to upload images');
+        toast.error('Failed to upload images');
       }
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Failed to upload images');
+      toast.error('Failed to upload images');
     } finally {
       setUploading(false);
     }
@@ -64,12 +66,13 @@ export function RoomImageUpload({
         const newImages = images.filter(img => img !== imageUrl);
         setImages(newImages);
         onImagesChange?.(newImages);
+        toast.success('Image deleted successfully');
       } else {
-        alert('Failed to delete image');
+        toast.error('Failed to delete image');
       }
     } catch (error) {
       console.error('Delete error:', error);
-      alert('Failed to delete image');
+      toast.error('Failed to delete image');
     }
   };
 

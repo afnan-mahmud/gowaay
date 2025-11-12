@@ -14,6 +14,7 @@ import {
   ChevronLeft
 } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
+import { toast } from 'sonner';
 
 // Backend room response interface
 interface BackendRoom {
@@ -117,42 +118,46 @@ function BookingDetailsContent() {
         mode: 'instant'
       };
 
-      console.log('Creating booking with data:', bookingData);
       const bookingResponse = await api.bookings.create(bookingData);
 
       if (bookingResponse.success && bookingResponse.data) {
         const booking = bookingResponse.data as any;
         const bookingId = booking.bookingId || booking._id;
-        
-        console.log('Booking created successfully:', bookingId);
 
-        // Initialize payment with SSLCommerz using the new helper
-        console.log('Initializing payment with bookingId:', bookingId);
-        const paymentResponse = await api.payments.initSsl({ bookingId });
-        
-        console.log('Payment response:', JSON.stringify(paymentResponse, null, 2));
+        // ========== SSLCommerz Integration (Commented - will be restored later) ==========
+        // // Initialize payment with SSLCommerz using the new helper
+        // console.log('Initializing payment with bookingId:', bookingId);
+        // const paymentResponse = await api.payments.initSsl({ bookingId });
+        // 
+        // console.log('Payment response:', JSON.stringify(paymentResponse, null, 2));
+        //
+        // if (paymentResponse.success && paymentResponse.data?.gatewayUrl) {
+        //   console.log('Payment session created, redirecting to gateway');
+        //   // Redirect to SSLCommerz payment gateway
+        //   window.location.href = paymentResponse.data.gatewayUrl;
+        // } else {
+        //   console.error('Payment initialization failed:', paymentResponse);
+        //   const errorMsg = paymentResponse.error || paymentResponse.message || 'Failed to initialize payment. Please try again.';
+        //   console.error('Error message:', errorMsg);
+        //   toast.error(errorMsg);
+        //   setProcessing(false);
+        // }
+        // ========== End SSLCommerz Integration ==========
 
-        if (paymentResponse.success && paymentResponse.data?.gatewayUrl) {
-          console.log('Payment session created, redirecting to gateway');
-          // Redirect to SSLCommerz payment gateway
-          window.location.href = paymentResponse.data.gatewayUrl;
-        } else {
-          console.error('Payment initialization failed:', paymentResponse);
-          const errorMsg = paymentResponse.error || paymentResponse.message || 'Failed to initialize payment. Please try again.';
-          console.error('Error message:', errorMsg);
-          alert(errorMsg);
-          setProcessing(false);
-        }
+        // Manual Payment Flow (bKash/Nagad)
+        // Redirect to manual payment page
+        const paymentUrl = `/payment/manual?bookingId=${bookingId}&amount=${calculateTotal()}`;
+        window.location.href = paymentUrl;
       } else {
         console.error('Booking creation failed:', bookingResponse);
         const errorMessage = (bookingResponse as any).error || bookingResponse.message || 'Failed to create booking. Please try again.';
-        alert(errorMessage);
+        toast.error(errorMessage);
         setProcessing(false);
       }
     } catch (error) {
       console.error('Booking error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to create booking. Please try again.';
-      alert(errorMessage);
+      toast.error(errorMessage);
       setProcessing(false);
     }
   };

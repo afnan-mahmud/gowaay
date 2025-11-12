@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface UploadFieldProps {
   onFileSelect: (file: File | null) => void;
@@ -30,13 +31,13 @@ export function UploadField({
     fileArray.forEach(file => {
       // Check file size
       if (file.size > maxSize) {
-        alert(`File ${file.name} is too large. Maximum size is ${Math.round(maxSize / 1024 / 1024)}MB`);
+        toast.error(`File ${file.name} is too large. Maximum size is ${Math.round(maxSize / 1024 / 1024)}MB`);
         return;
       }
 
       // Check file type
       if (accept && !file.type.match(accept.replace('*', '.*'))) {
-        alert(`File ${file.name} is not a valid file type`);
+        toast.error(`File ${file.name} is not a valid file type`);
         return;
       }
 

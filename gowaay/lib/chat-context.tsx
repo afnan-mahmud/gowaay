@@ -66,10 +66,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
     try {
       const response = await api.chat.getThreadIds();
-      return (response.data as any).threadIds;
+      if (response.success && response.data) {
+        return (response.data as any).threadIds || [];
+      }
+      return [];
     } catch (err) {
-      console.error('Failed to fetch thread IDs:', err);
-      setError('Failed to load chat threads');
+      // Silently fail - this is expected for users without chat access
       return [];
     }
   }, [isAuthenticated, user]);
@@ -83,10 +85,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
     try {
       const threadIds = await fetchThreadIds();
-      console.log('[CHAT_FRONTEND] Fetched thread IDs:', threadIds);
       
       if (threadIds.length === 0) {
-        console.log('[CHAT_FRONTEND] No threads found');
         setThreads([]);
         setLoading(false);
         return;
@@ -97,21 +97,16 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       // Subscribe to each thread
       threadIds.forEach((threadId: string) => {
         if (!database) {
-          console.warn('[CHAT_FRONTEND] Firebase database not available');
           return;
         }
         
-        console.log('[CHAT_FRONTEND] Subscribing to thread:', threadId);
         const threadRef = ref(database, `threads/${threadId}`);
         
         const unsubscribe = onValue(threadRef, (snapshot: DataSnapshot) => {
           const threadData = snapshot.val();
-          console.log(`[CHAT_FRONTEND] Firebase data received for thread ${threadId}:`, threadData);
-          console.log(`[CHAT_FRONTEND] Snapshot exists: ${snapshot.exists()}, has data: ${!!threadData}`);
           
           // If no Firebase data, check if thread exists in MongoDB
           if (!threadData && snapshot.exists() === false) {
-            console.log(`[CHAT_FRONTEND] No Firebase data for thread ${threadId}, loading from API`);
             // Load thread details from API
             api.chat.getThreads({ page: 1, limit: 100 }).then(response => {
               if (response.success && response.data) {
@@ -131,15 +126,15 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
                   };
                   setThreads(prev => {
                     const filtered = prev.filter(t => t.id !== threadId);
-                    const updated = [...filtered, frontendThread].sort((a, b) => 
+                    return [...filtered, frontendThread].sort((a, b) => 
                       new Date(b.meta.lastMessageAt).getTime() - new Date(a.meta.lastMessageAt).getTime()
                     );
-                    console.log('[CHAT_FRONTEND] Updated threads array with API data:', updated.length, 'threads');
-                    return updated;
                   });
                 }
               }
-            }).catch(err => console.error('Failed to load thread from API:', err));
+            }).catch(() => {
+              // Silently handle - thread might not exist
+            });
             return;
           }
           
@@ -155,11 +150,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
             setThreads(prev => {
               const filtered = prev.filter(t => t.id !== threadId);
-              const updated = [...filtered, thread].sort((a, b) => 
+              return [...filtered, thread].sort((a, b) => 
                 new Date(b.meta.lastMessageAt).getTime() - new Date(a.meta.lastMessageAt).getTime()
               );
-              console.log('[CHAT_FRONTEND] Updated threads array:', updated.length, 'threads');
-              return updated;
             });
           }
         });
@@ -174,8 +167,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         Object.values(newSubscriptions).forEach(unsubscribe => unsubscribe());
       };
     } catch (err) {
-      console.error('Failed to subscribe to threads:', err);
-      setError('Failed to load chat threads');
+      // Silently handle errors - this is expected for users without chat access
+      setThreads([]);
     } finally {
       setLoading(false);
     }
@@ -201,7 +194,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         threadId
       });
     } catch (err) {
-      console.error('Failed to send message:', err);
       setError('Failed to send message');
     }
   }, [isAuthenticated, user]);
@@ -263,7 +255,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
       return thread;
     } catch (err) {
-      console.error('Failed to create thread:', err);
       setError('Failed to create chat thread');
       return null;
     }

@@ -1,0 +1,10 @@
+#!/bin/bash
+echo "Testing manual payment endpoint..."
+echo ""
+echo "Expected behavior:"
+echo "- Booking status should change to: pending_verification"
+echo "- Payment status should remain: unpaid"
+echo "- Response should say: 'Waiting for admin verification'"
+echo ""
+echo "If you see 'confirmed' and 'paid', there's still an issue."
+echo ""

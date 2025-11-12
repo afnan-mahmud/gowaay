@@ -237,6 +237,7 @@ router.get('/ssl/success', async (req, res) => {
       if (booking) {
         booking.paymentStatus = 'paid';
         booking.status = 'confirmed';
+        booking.transactionId = val_id as string; // Set SSLCommerz transaction ID
         await booking.save();
 
         console.log(`[PAYMENT_SUCCESS] Booking confirmed: ${booking._id}`);
@@ -396,6 +397,7 @@ router.post('/ssl/ipn', async (req, res) => {
         if (booking && booking.paymentStatus !== 'paid') {
           booking.paymentStatus = 'paid';
           booking.status = 'confirmed';
+          booking.transactionId = val_id; // Set SSLCommerz transaction ID
           await booking.save();
 
           console.log(`[PAYMENT_IPN] Booking confirmed via IPN: ${booking._id}`);
@@ -424,6 +426,135 @@ router.post('/ssl/ipn', async (req, res) => {
   } catch (error) {
     console.error('[PAYMENT_IPN] Error:', error);
     return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ========== Manual Payment (bKash/Nagad) Routes ==========
+
+// @route   POST /api/payments/manual/confirm
+// @desc    Confirm manual payment with transaction ID
+// @access  Private
+router.post('/manual/confirm', requireUser, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { bookingId, txnId, amount, method } = req.body;
+    
+    console.log(`[MANUAL_PAYMENT] Processing manual payment - Booking: ${bookingId}`);
+
+    // Validate required fields
+    if (!bookingId || !txnId || !amount) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
+    }
+
+    // Get booking with all related data
+    const booking = await Booking.findById(bookingId)
+      .populate('roomId')
+      .populate('userId')
+      .populate('hostId');
+
+    if (!booking) {
+      console.log(`[MANUAL_PAYMENT] Booking not found: ${bookingId}`);
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found'
+      });
+    }
+
+    // Verify booking belongs to authenticated user
+    if (booking.userId._id.toString() !== req.user!.id) {
+      console.log(`[MANUAL_PAYMENT] Access denied for booking: ${bookingId}, user: ${req.user!.id}`);
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    // Check booking status
+    if (booking.status !== 'pending') {
+      console.log(`[MANUAL_PAYMENT] Invalid booking status: ${booking.status} for booking: ${bookingId}`);
+      return res.status(400).json({
+        success: false,
+        message: 'Booking is not in pending status'
+      });
+    }
+
+    if (booking.paymentStatus !== 'unpaid') {
+      console.log(`[MANUAL_PAYMENT] Invalid payment status: ${booking.paymentStatus} for booking: ${bookingId}`);
+      return res.status(400).json({
+        success: false,
+        message: 'Booking is already paid or processed'
+      });
+    }
+
+    // Check for duplicate TXN ID
+    const existingPayment = await PaymentTransaction.findOne({
+      valId: txnId,
+      gateway: 'manual',
+      status: { $in: ['completed', 'pending'] }
+    });
+
+    if (existingPayment) {
+      return res.status(400).json({
+        success: false,
+        message: 'This transaction ID has already been used'
+      });
+    }
+
+    // Validate TXN ID format (basic validation)
+    if (!/^[A-Z0-9]{6,20}$/i.test(txnId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid transaction ID format'
+      });
+    }
+
+    // Create payment transaction record as PENDING (not completed)
+    const paymentTransaction = new PaymentTransaction({
+      bookingId: booking._id,
+      gateway: 'manual',
+      amountTk: amount,
+      status: 'pending', // Waiting for admin verification
+      valId: txnId, // Store TXN ID in valId field
+      raw: {
+        method: method, // bKash/Nagad
+        txnId: txnId,
+        submittedAt: new Date(),
+        submittedBy: req.user!.id
+      }
+    });
+
+    await paymentTransaction.save();
+    console.log(`[MANUAL_PAYMENT] Created payment transaction: ${paymentTransaction._id}`);
+
+    // Update booking status to PENDING_VERIFICATION (not confirmed yet)
+    booking.status = 'pending_verification'; // Wait for admin approval
+    booking.transactionId = txnId; // Set the user-provided TXN ID
+    await booking.save();
+
+    console.log(`[MANUAL_PAYMENT] Booking set to pending verification: ${booking._id}`);
+
+    // NOTE: Commission will be created AFTER admin verification
+
+    return res.json({
+      success: true,
+      message: 'Payment submitted successfully. Waiting for admin verification.',
+      data: {
+        bookingId: booking._id,
+        transactionId: paymentTransaction._id,
+        status: booking.status,
+        paymentStatus: booking.paymentStatus
+      }
+    });
+  } catch (error) {
+    console.error('[MANUAL_PAYMENT] Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+    return res.status(500).json({
+      success: false,
+      message: errorMessage,
+      error: errorMessage
+    });
   }
 });
 

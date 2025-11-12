@@ -17,10 +17,14 @@ import {
   CreditCard,
   MapPin,
   Phone,
-  Mail
+  Mail,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAdminBookings } from '@/lib/hooks/useAdminData';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 interface Booking {
   _id: string;
@@ -44,7 +48,7 @@ interface Booking {
   checkOut: string;
   guests: number;
   mode: 'instant' | 'request';
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  status: 'pending' | 'pending_verification' | 'confirmed' | 'cancelled' | 'completed';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
   amountTk: number;
   transactionId?: string;
@@ -53,11 +57,12 @@ interface Booking {
 }
 
 export default function AdminBookings() {
-  const { bookings, loading, error } = useAdminBookings();
+  const { bookings, loading, error, refetch } = useAdminBookings();
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     filterBookings();
@@ -87,13 +92,21 @@ export default function AdminBookings() {
   const getStatusBadge = (status: string) => {
     const variants = {
       pending: 'bg-yellow-100 text-yellow-800',
+      pending_verification: 'bg-orange-100 text-orange-800',
       confirmed: 'bg-green-100 text-green-800',
       cancelled: 'bg-red-100 text-red-800',
       completed: 'bg-blue-100 text-blue-800',
     };
+    const labels = {
+      pending: 'Pending',
+      pending_verification: 'Pending Verification',
+      confirmed: 'Confirmed',
+      cancelled: 'Cancelled',
+      completed: 'Completed',
+    };
     return (
       <Badge className={variants[status as keyof typeof variants]}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {labels[status as keyof typeof labels] || status}
       </Badge>
     );
   };
@@ -110,6 +123,28 @@ export default function AdminBookings() {
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
+  };
+
+  const handleVerifyPayment = async (bookingId: string, approved: boolean) => {
+    setVerifying(true);
+    try {
+      const response = await api.admin.verifyPayment(bookingId, { 
+        approved, 
+        notes: approved ? 'Payment verified and approved' : 'Payment rejected - invalid transaction' 
+      });
+
+      if (response.success) {
+        toast.success(approved ? 'Payment approved successfully!' : 'Payment rejected');
+        refetch(); // Refresh bookings list
+      } else {
+        toast.error(response.message || 'Failed to verify payment');
+      }
+    } catch (error) {
+      console.error('Verify payment error:', error);
+      toast.error('Failed to verify payment');
+    } finally {
+      setVerifying(false);
+    }
   };
 
   return (
@@ -303,6 +338,40 @@ export default function AdminBookings() {
                               <div className="bg-gray-50 p-4 rounded-lg">
                                 <p className="text-sm font-medium text-gray-600">Transaction ID</p>
                                 <p className="font-mono">{booking.transactionId}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Payment Verification (for pending_verification status) */}
+                          {booking.status === 'pending_verification' && booking.transactionId && (
+                            <div className="border-t pt-6">
+                              <h3 className="font-semibold text-lg mb-3 text-orange-600">⚠️ Payment Verification Required</h3>
+                              <div className="bg-orange-50 p-4 rounded-lg mb-4">
+                                <p className="text-sm text-gray-700 mb-2">
+                                  Customer has submitted payment with Transaction ID: <span className="font-mono font-semibold">{booking.transactionId}</span>
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Please verify this transaction in your bKash/Nagad merchant account before approving.
+                                </p>
+                              </div>
+                              <div className="flex gap-3">
+                                <Button 
+                                  onClick={() => handleVerifyPayment(booking._id, true)}
+                                  disabled={verifying}
+                                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  {verifying ? 'Approving...' : 'Approve Payment'}
+                                </Button>
+                                <Button 
+                                  onClick={() => handleVerifyPayment(booking._id, false)}
+                                  disabled={verifying}
+                                  variant="destructive"
+                                  className="flex-1"
+                                >
+                                  <XCircle className="h-4 w-4 mr-2" />
+                                  {verifying ? 'Rejecting...' : 'Reject Payment'}
+                                </Button>
                               </div>
                             </div>
                           )}

@@ -8,8 +8,8 @@ export interface IBooking extends Document {
   checkOut: Date;
   guests: number;
   mode: 'instant' | 'request';
-  status: 'pending' | 'confirmed' | 'cancelled' | 'rejected';
-  transactionId: string;
+  status: 'pending' | 'pending_verification' | 'confirmed' | 'cancelled' | 'rejected';
+  transactionId?: string;
   paymentStatus: 'unpaid' | 'paid' | 'refunded';
   amountTk: number;
   hasReview: boolean;
@@ -54,12 +54,12 @@ const bookingSchema = new Schema<IBooking>({
   },
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'cancelled', 'rejected'],
+    enum: ['pending', 'pending_verification', 'confirmed', 'cancelled', 'rejected'],
     default: 'pending'
   },
   transactionId: {
     type: String,
-    required: [true, 'Transaction ID is required'],
+    required: false,
     trim: true
   },
   paymentStatus: {

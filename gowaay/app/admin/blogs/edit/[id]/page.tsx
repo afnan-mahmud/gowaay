@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import BlogForm from '@/components/admin/BlogForm';
+import { toast } from 'sonner';
 
 export default function EditBlogPage() {
   const router = useRouter();
@@ -42,12 +43,13 @@ export default function EditBlogPage() {
       
       if (response.success) {
         router.push('/admin/blogs');
+        toast.success('Blog updated successfully!');
       } else {
-        alert(response.error || 'Failed to update blog');
+        toast.error(response.error || 'Failed to update blog');
       }
     } catch (error) {
       console.error('Failed to update blog:', error);
-      alert('Failed to update blog');
+      toast.error('Failed to update blog');
     } finally {
       setSaving(false);
     }

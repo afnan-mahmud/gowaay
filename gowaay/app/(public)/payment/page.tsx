@@ -10,6 +10,7 @@ import { Room } from '@/lib/store';
 import { env } from '@/lib/env';
 import { Calendar, Users, CreditCard, ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
+import { toast } from 'sonner';
 
 function PaymentContent() {
   const searchParams = useSearchParams();
@@ -52,29 +53,34 @@ function PaymentContent() {
     try {
       setProcessing(true);
       
-      const paymentData = {
-        amount: room.price,
-        currency: 'BDT',
-        orderId: `ORDER_${Date.now()}`,
-        products: [{
-          id: room.id,
-          name: room.name,
-          quantity: 1,
-          price: room.price,
-        }],
-      };
-
-      const response = await api.payments.create<{ gatewayUrl: string }>(paymentData);
+      // ========== SSLCommerz Integration (Commented - will be restored later) ==========
+      // const paymentData = {
+      //   amount: room.price,
+      //   currency: 'BDT',
+      //   orderId: `ORDER_${Date.now()}`,
+      //   products: [{
+      //     id: room.id,
+      //     name: room.name,
+      //     quantity: 1,
+      //     price: room.price,
+      //   }],
+      // };
+      //
+      // const response = await api.payments.create<{ gatewayUrl: string }>(paymentData);
+      // 
+      // if (response.success && response.data) {
+      //   // Redirect to SSLCOMMERZ payment gateway
+      //   window.location.href = response.data.gatewayUrl;
+      // } else {
+      //   toast.error('Failed to create payment session');
+      // }
+      // ========== End SSLCommerz Integration ==========
       
-      if (response.success && response.data) {
-        // Redirect to SSLCOMMERZ payment gateway
-        window.location.href = response.data.gatewayUrl;
-      } else {
-        alert('Failed to create payment session');
-      }
+      // Note: This page is not actively used. Main payment flow is in /booking/details
+      toast.error('Please use the booking details page to complete payment');
     } catch (error) {
       console.error('Payment error:', error);
-      alert('Payment failed. Please try again.');
+      toast.error('Payment failed. Please try again.');
     } finally {
       setProcessing(false);
     }

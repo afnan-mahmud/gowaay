@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 interface Host {
   id: string;
@@ -145,13 +146,13 @@ export default function AdminHosts() {
       if (response.success) {
         // Refetch the list to get updated data
         await fetchHosts();
-        alert('Host approved successfully!');
+        toast.success('Host approved successfully!');
       } else {
-        alert('Failed to approve host: ' + (response.message || 'Unknown error'));
+        toast.error('Failed to approve host: ' + (response.message || 'Unknown error'));
       }
     } catch (error) {
       console.error('Failed to approve host:', error);
-      alert('Failed to approve host. Please try again.');
+      toast.error('Failed to approve host. Please try again.');
     }
   };
 
@@ -162,13 +163,13 @@ export default function AdminHosts() {
       if (response.success) {
         // Refetch the list to get updated data
         await fetchHosts();
-        alert('Host rejected successfully!');
+        toast.success('Host rejected successfully!');
       } else {
-        alert('Failed to reject host: ' + (response.message || 'Unknown error'));
+        toast.error('Failed to reject host: ' + (response.message || 'Unknown error'));
       }
     } catch (error) {
       console.error('Failed to reject host:', error);
-      alert('Failed to reject host. Please try again.');
+      toast.error('Failed to reject host. Please try again.');
     }
   };
 

@@ -15,6 +15,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import Image from 'next/image';
 import { Upload, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface BlogFormProps {
   onSubmit: (data: any) => void;
@@ -83,7 +84,7 @@ export default function BlogForm({ onSubmit, saving, initialData }: BlogFormProp
     
     // Validate required fields
     if (!formData.title || !formData.slug || !formData.excerpt || !formData.content || !formData.imageUrl) {
-      alert('Please fill in all required fields');
+      toast.error('Please fill in all required fields');
       return;
     }
 

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import BlogForm from '@/components/admin/BlogForm';
+import { toast } from 'sonner';
 
 export default function NewBlogPage() {
   const router = useRouter();
@@ -19,12 +20,13 @@ export default function NewBlogPage() {
       
       if (response.success) {
         router.push('/admin/blogs');
+        toast.success('Blog created successfully!');
       } else {
-        alert(response.error || 'Failed to create blog');
+        toast.error(response.error || 'Failed to create blog');
       }
     } catch (error) {
       console.error('Failed to create blog:', error);
-      alert('Failed to create blog');
+      toast.error('Failed to create blog');
     } finally {
       setSaving(false);
     }

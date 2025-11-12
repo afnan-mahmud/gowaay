@@ -25,6 +25,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
 interface Room {
   _id: string;
@@ -121,23 +122,23 @@ export default function AdminRooms() {
 
   const handleAssignHost = async (roomId: string) => {
     if (!selectedHost) {
-      alert('Please select a host');
+      toast.error('Please select a host');
       return;
     }
 
     try {
       setAssigningHost(roomId);
       const response = await api.admin.assignHost(roomId, selectedHost);
-      
+
       if (response.success) {
         await fetchRooms(); // Refresh the list
         setSelectedHost('');
-        alert('Host assigned successfully!');
+        toast.success('Host assigned successfully!');
       } else {
-        alert(response.message || 'Failed to assign host');
+        toast.error(response.message || 'Failed to assign host');
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'An error occurred');
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setAssigningHost(null);
     }
@@ -184,11 +185,12 @@ export default function AdminRooms() {
         await fetchRooms(); // Refresh the list
         setSelectedRoom(null);
         setCommissionTk(0);
+        toast.success('Room approved successfully!');
       } else {
-        alert(response.message || 'Failed to approve room');
+        toast.error(response.message || 'Failed to approve room');
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'An error occurred');
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setActionLoading(null);
     }
@@ -197,19 +199,20 @@ export default function AdminRooms() {
   const handleReject = async (roomId: string) => {
     try {
       setActionLoading(roomId);
-      
+
       const response = await api.admin.rejectRoom(roomId, {
         status: 'rejected'
       });
-      
+
       if (response.success) {
         await fetchRooms(); // Refresh the list
         setSelectedRoom(null);
+        toast.success('Room rejected successfully');
       } else {
-        alert(response.message || 'Failed to reject room');
+        toast.error(response.message || 'Failed to reject room');
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'An error occurred');
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setActionLoading(null);
     }

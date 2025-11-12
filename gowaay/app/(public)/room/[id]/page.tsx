@@ -26,6 +26,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { DateRange as ReactDayPickerDateRange } from 'react-day-picker';
 import { format, isBefore, startOfDay, differenceInDays } from 'date-fns';
 import { Minus, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 
 // Backend room response interface
 interface BackendRoom {
@@ -66,15 +67,11 @@ interface BackendRoom {
 
 // Helper function to resolve image URLs
 const resolveImageSrc = (image: string) => {
-  console.log('resolveImageSrc input:', image);
   if (image.startsWith('http://') || image.startsWith('https://')) {
-    console.log('resolveImageSrc output (absolute URL):', image);
     return image;
   }
   const normalized = image.startsWith('/') ? image : `/${image}`;
-  const resolved = `${env.IMG_BASE_URL}${normalized}`;
-  console.log('resolveImageSrc output (relative URL):', resolved);
-  return resolved;
+  return `${env.IMG_BASE_URL}${normalized}`;
 };
 
 // Helper function to create Google Maps embed URL from any maps URL
@@ -188,7 +185,6 @@ export default function RoomDetails() {
       const response = await api.rooms.get<BackendRoom>(roomId);
       if (response.success && response.data) {
         const backendRoom = response.data as BackendRoom;
-        console.log('Backend room images:', backendRoom.images);
         setBackendRoom(backendRoom);
         
         // Map backend data to frontend Room structure
@@ -216,7 +212,6 @@ export default function RoomDetails() {
           updatedAt: backendRoom.updatedAt,
         };
         
-        console.log('Transformed room images:', roomData.images);
         setRoom(roomData);
         trackRoomView(roomData.id, roomData.price);
       } else {
@@ -233,7 +228,7 @@ export default function RoomDetails() {
 
   const handleBooking = async () => {
     if (!checkIn || !checkOut) {
-      alert('Please select check-in and check-out dates');
+      toast.error('Please select check-in and check-out dates');
       return;
     }
     

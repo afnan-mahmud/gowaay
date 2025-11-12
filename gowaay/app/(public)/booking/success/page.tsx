@@ -64,10 +64,10 @@ function BookingSuccessContent() {
 
           {/* Success Message */}
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            🎉 Booking Successful!
+            🎉 Payment Submitted!
           </h1>
           <p className="text-lg text-gray-600 mb-8">
-            Your payment has been processed successfully and your booking is confirmed.
+            Your payment is under verification. You'll be notified once it's confirmed.
           </p>
 
           {/* Booking Details */}

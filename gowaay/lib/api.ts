@@ -55,7 +55,10 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error('API request failed:', { status: response.status, data });
+        // Only log unexpected errors (not 401 unauthorized or 404 not found)
+        if (response.status !== 401 && response.status !== 404) {
+          console.error('API request failed:', { status: response.status, url, data });
+        }
         return {
           success: false,
           error: data.error || data.message || 'Request failed',
@@ -65,7 +68,7 @@ class ApiClient {
 
       return data;
     } catch (error) {
-      console.error('API request failed:', error);
+      console.error('API request failed:', { url, error });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -260,6 +263,8 @@ export const api = {
     verify: <T = any>(params: { val_id: string; tran_id: string }) =>
       apiClient.post<T>('/payments/ssl/verify', params),
     status: <T = any>(transactionId: string) => apiClient.get<T>(`/payments/status/${transactionId}`),
+    confirmManual: (data: { bookingId: string; txnId: string; amount: number; method: string }) => 
+      apiClient.post('/payments/manual/confirm', data),
   },
 
   // Uploads
@@ -296,6 +301,8 @@ export const api = {
     rejectHost: (id: string, data: any) => apiClient.post(`/admin/hosts/${id}/reject`, data),
     approveRoom: (id: string, data: any) => apiClient.post(`/admin/rooms/${id}/approve`, data),
     rejectRoom: (id: string, data: any) => apiClient.post(`/admin/rooms/${id}/reject`, data),
+    verifyPayment: (bookingId: string, data: { approved: boolean; notes?: string }) => 
+      apiClient.post(`/admin/bookings/${bookingId}/verify-payment`, data),
     accounts: {
       summary: (params?: { from?: string; to?: string }) => apiClient.get('/accounts/summary', params),
       ledger: (params?: { from?: string; to?: string }) => apiClient.get('/accounts/ledger', params),

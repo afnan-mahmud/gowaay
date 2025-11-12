@@ -376,7 +376,6 @@ router.get('/threads/ids', requireUser, async (req: AuthenticatedRequest, res) =
     const userId = req.user!.id;
     const userRole = req.user!.role;
 
-    console.log(`[CHAT] Getting thread IDs for user: ${userId}, role: ${userRole}`);
 
     let threads: any[] = [];
 
@@ -397,7 +396,6 @@ router.get('/threads/ids', requireUser, async (req: AuthenticatedRequest, res) =
       console.log(`[CHAT] Host found ${threads.length} threads`);
     } else {
       // Regular user/guest - find threads where they are the userId
-      console.log(`[CHAT] Guest query - Looking for userId: ${userId} (type: ${typeof userId})`);
       
       // Try both direct match and ObjectId match
       const mongoose = require('mongoose');
@@ -412,7 +410,6 @@ router.get('/threads/ids', requireUser, async (req: AuthenticatedRequest, res) =
       })
         .select('_id roomId userId hostId lastMessageAt')
         .sort({ lastMessageAt: -1 });
-      console.log(`[CHAT] User found ${threads.length} threads for userId: ${userId}`);
       
       // Debug: Show all threads in DB for this user
       if (threads.length === 0) {
@@ -423,7 +420,6 @@ router.get('/threads/ids', requireUser, async (req: AuthenticatedRequest, res) =
           userId: (t.userId as any).toString(),
           match: (t.userId as any).toString() === userId.toString()
         })));
-        console.log(`[CHAT] DEBUG - Looking for userId:`, userId.toString());
       }
     }
 
@@ -432,7 +428,6 @@ router.get('/threads/ids', requireUser, async (req: AuthenticatedRequest, res) =
     console.log(`[CHAT] Returning ${threadIds.length} thread IDs`);
     if (threadIds.length > 0) {
       console.log(`[CHAT] Sample thread IDs:`, threadIds.slice(0, 3));
-      console.log(`[CHAT] Sample thread userId:`, (threads[0].userId as any)?.toString());
     }
 
     return res.json({

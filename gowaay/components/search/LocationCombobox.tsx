@@ -27,7 +27,6 @@ const fetchLocations = async (query: string): Promise<Location[]> => {
   try {
     // API_BASE_URL already includes /api, so we just add /locations
     const apiUrl = `${env.API_BASE_URL}/locations?s=${encodeURIComponent(query)}`;
-    console.log('Fetching locations from:', apiUrl);
     
     const response = await fetch(apiUrl);
     
@@ -37,7 +36,6 @@ const fetchLocations = async (query: string): Promise<Location[]> => {
     }
     
     const data = await response.json();
-    console.log('Locations fetched:', data);
     
     return data.map((item: any) => ({
       id: item.id,
@@ -74,12 +72,10 @@ export function LocationCombobox({
         if (value.trim() === '') {
           // Show top 10 cities by default when field is empty or just opened
           const defaultLocations = await fetchLocations('');
-          console.log('Default locations loaded:', defaultLocations);
           setFilteredLocations(defaultLocations.slice(0, 10));
         } else {
           // Filter locations as user types
           const filtered = await fetchLocations(value);
-          console.log(`Filtered locations for "${value}":`, filtered);
           setFilteredLocations(filtered.slice(0, 10));
         }
         setSelectedIndex(-1);

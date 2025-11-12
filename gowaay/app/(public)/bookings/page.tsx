@@ -31,7 +31,7 @@ interface Booking {
   checkOut: string;
   guests: number;
   amountTk: number;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'rejected';
+  status: 'pending' | 'pending_verification' | 'confirmed' | 'cancelled' | 'rejected';
   paymentStatus: 'unpaid' | 'paid' | 'refunded';
   hasReview: boolean;
   createdAt: string;
@@ -88,12 +88,35 @@ export default function BookingsPage() {
         return 'bg-green-100 text-green-800';
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
+      case 'pending_verification':
+        return 'bg-orange-100 text-orange-800';
       case 'cancelled':
         return 'bg-red-100 text-red-800';
       case 'completed':
         return 'bg-blue-100 text-blue-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending_verification':
+        return 'Pending Verification';
+      case 'confirmed':
+        return 'Confirmed';
+      case 'pending':
+        return 'Pending';
+      case 'cancelled':
+        return 'Cancelled';
+      case 'rejected':
+        return 'Rejected';
+      case 'completed':
+        return 'Completed';
+      default:
+        return status;
     }
   };
 
@@ -167,7 +190,7 @@ export default function BookingsPage() {
                           {booking.roomId.title}
                         </h3>
                         <Badge className={getStatusColor(booking.status)}>
-                          {booking.status}
+                          {getStatusLabel(booking.status)}
                         </Badge>
                       </div>
 
@@ -191,8 +214,18 @@ export default function BookingsPage() {
                         </div>
                       </div>
 
-                      {/* Host Information - Show only for confirmed bookings */}
-                      {booking.status === 'confirmed' && booking.hostId && (
+                      {/* Pending Verification Message */}
+                      {booking.status === 'pending_verification' && (
+                        <div className="mt-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                          <h4 className="text-sm font-semibold text-orange-900 mb-1">⏳ Payment Under Verification</h4>
+                          <p className="text-xs text-orange-700">
+                            Your payment is being verified by our team. Host information will be available once payment is confirmed.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Host Information - Show only for confirmed AND paid bookings */}
+                      {booking.status === 'confirmed' && booking.paymentStatus === 'paid' && booking.hostId && (
                         <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                           <h4 className="text-sm font-semibold text-gray-900 mb-2">Host Information</h4>
                           <div className="space-y-1 text-sm text-gray-600">
@@ -227,8 +260,8 @@ export default function BookingsPage() {
                           </Button>
                         )}
                         
-                        {/* Maps Button - Show only for confirmed bookings with map URL */}
-                        {booking.status === 'confirmed' && booking.hostId?.locationMapUrl && (
+                        {/* Maps Button - Show only for confirmed AND paid bookings with map URL */}
+                        {booking.status === 'confirmed' && booking.paymentStatus === 'paid' && booking.hostId?.locationMapUrl && (
                           <a 
                             href={booking.hostId.locationMapUrl} 
                             target="_blank" 
